@@ -100,7 +100,11 @@ export async function POST(request: Request) {
       const parsed = JSON.parse(rawText) as ResearchReport;
       return NextResponse.json({ ok: true, report: parsed, rawText });
     } catch {
-      return NextResponse.json({ ok: false, rawText });
+      return NextResponse.json({
+        ok: false,
+        error: "Model response was not valid JSON. Use the raw response below.",
+        rawText,
+      });
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown server error.";

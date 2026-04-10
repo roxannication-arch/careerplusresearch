@@ -12,7 +12,7 @@ type ApiSuccess = {
 
 type ApiError = {
   ok: false;
-  error: string;
+  error?: string;
   rawText?: string;
 };
 
@@ -89,14 +89,14 @@ export default function HomePage() {
       });
 
       const data = (await response.json()) as ApiSuccess | ApiError;
-      if (!response.ok || !data.ok) {
-        setError(data.error || "Request failed.");
-        setRawResponse(data.rawText ?? "");
+      if (response.ok && data.ok) {
+        setReport(data.report);
+        setRawResponse(data.rawText);
         return;
       }
 
-      setReport(data.report);
-      setRawResponse(data.rawText);
+      setError(!data.ok ? data.error ?? "Request failed." : "Request failed.");
+      setRawResponse(!data.ok ? data.rawText ?? "" : "");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unexpected error.");
     } finally {
