@@ -1,6 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
 import mammoth from "mammoth";
-import { PDFParse } from "pdf-parse";
 import { NextResponse } from "next/server";
 import type { ResearchPayload, ResearchReport } from "@/lib/types";
 
@@ -95,6 +94,7 @@ async function extractResumeText(file: File): Promise<string> {
   }
 
   if (ext === "pdf") {
+    const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: new Uint8Array(arrayBuffer) });
     try {
       const result = await parser.getText();

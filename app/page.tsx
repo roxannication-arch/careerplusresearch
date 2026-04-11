@@ -16,6 +16,11 @@ type ApiError = {
   rawText?: string;
 };
 
+type GenericErrorResponse = {
+  error?: string;
+  rawText?: string;
+};
+
 const initialForm: ResearchPayload = {
   clientName: "",
   specialty: "",
@@ -97,15 +102,22 @@ export default function HomePage() {
         body,
       });
 
-      const data = (await response.json()) as ApiSuccess | ApiError;
-      if (response.ok && data.ok) {
+      const responseText = await response.text();
+      let data: ApiSuccess | ApiError | GenericErrorResponse = {};
+      try {
+        data = JSON.parse(responseText) as ApiSuccess | ApiError | GenericErrorResponse;
+      } catch {
+        data = { error: responseText || "Unexpected non-JSON response from server." };
+      }
+
+      if (response.ok && "ok" in data && data.ok) {
         setReport(data.report);
-        setRawResponse(data.rawText);
+        setRawResponse(data.rawText ?? "");
         return;
       }
 
-      setError(!data.ok ? data.error ?? "Request failed." : "Request failed.");
-      setRawResponse(!data.ok ? data.rawText ?? "" : "");
+      setError("error" in data ? data.error ?? "Request failed." : "Request failed.");
+      setRawResponse("rawText" in data ? data.rawText ?? "" : "");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unexpected error.");
     } finally {
