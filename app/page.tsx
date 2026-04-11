@@ -51,9 +51,9 @@ const titleGroupLabels: Record<keyof ResearchReport["title_groups"], string> = {
 };
 
 const priorityBadgeClass: Record<"High" | "Medium" | "Low", string> = {
-  High: "border-rose-300/40 bg-rose-500/20 text-rose-200",
-  Medium: "border-amber-300/40 bg-amber-500/20 text-amber-200",
-  Low: "border-slate-500/40 bg-slate-700/40 text-slate-200",
+  High: "border-rose-200 bg-rose-50 text-rose-700",
+  Medium: "border-amber-200 bg-amber-50 text-amber-700",
+  Low: "border-slate-200 bg-slate-50 text-slate-700",
 };
 
 const fieldClass =
@@ -63,7 +63,7 @@ const cardClass = "glass-card rounded-3xl p-8";
 const subCardClass = "section-card rounded-2xl p-4";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">{children}</label>;
+  return <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{children}</label>;
 }
 
 function sanitizeFilename(input: string) {
@@ -188,15 +188,15 @@ export default function HomePage() {
 
   return (
     <main className="mx-auto max-w-[1500px] px-10 py-12">
-      <div className="relative overflow-hidden rounded-3xl border border-indigo-200/70 bg-gradient-to-r from-slate-900 via-indigo-900 to-violet-900 p-8 text-white shadow-[0_30px_90px_-35px_rgba(67,56,202,0.7)]">
-        <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-fuchsia-400/30 blur-3xl" />
-        <div className="absolute -left-10 bottom-0 h-36 w-36 rounded-full bg-sky-300/20 blur-3xl" />
+      <div className="relative overflow-hidden rounded-3xl border border-indigo-200/70 bg-gradient-to-r from-slate-100 via-white to-indigo-100 p-8 text-slate-900 shadow-[0_30px_90px_-35px_rgba(51,65,85,0.32)]">
+        <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-fuchsia-200/50 blur-3xl" />
+        <div className="absolute -left-10 bottom-0 h-36 w-36 rounded-full bg-sky-200/40 blur-3xl" />
         <div className="relative">
-          <p className="inline-flex rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-indigo-100">
+          <p className="inline-flex rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">
             CareerPlus Intelligence
           </p>
           <h1 className="mt-4 text-4xl font-bold tracking-tight">Research Generator</h1>
-          <p className="mt-3 max-w-2xl text-sm text-indigo-100/90">
+          <p className="mt-3 max-w-2xl text-sm text-slate-700/90">
             Generate premium, consultant-ready US market research with strategic interpretations, vacancy intelligence, and
             export-ready documentation.
           </p>
@@ -209,8 +209,8 @@ export default function HomePage() {
       </div>
 
       <section className={`mt-6 ${cardClass}`}>
-        <p className="mb-4 text-sm font-semibold text-slate-200">Client Intake</p>
-        <p className="-mt-2 mb-6 text-xs text-slate-400">Fill in profile details to generate a high-signal research brief.</p>
+        <p className="mb-4 text-sm font-semibold text-slate-800">Client Intake</p>
+        <p className="-mt-2 mb-6 text-xs text-slate-500">Fill in profile details to generate a high-signal research brief.</p>
         <form onSubmit={onSubmit} className="space-y-5">
           <div className="grid grid-cols-2 gap-5">
             <div>
@@ -264,15 +264,11 @@ export default function HomePage() {
               <button
                 type="submit"
                 disabled={!canSubmit || isLoading}
-                className="rounded-xl bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-400/30 transition hover:scale-[1.01] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-55"
+                className="premium-btn rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition hover:scale-[1.01] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-55"
               >
                 {isLoading ? "Researching..." : "Generate report"}
               </button>
-              <button
-                type="button"
-                onClick={onReset}
-                className="rounded-xl border border-slate-700/60 bg-slate-900/65 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-slate-800/70"
-              >
+              <button type="button" onClick={onReset} className="muted-btn rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-700 transition">
                 Reset
               </button>
             </div>
@@ -295,9 +291,9 @@ export default function HomePage() {
                 setError("");
                 setResumeFile(file);
               }}
-              className="w-full rounded-xl border border-slate-700/60 bg-slate-900/65 px-3 py-2.5 text-sm text-slate-300 shadow-sm outline-none transition file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-500/15 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-indigo-700 hover:file:bg-indigo-500/25 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
             />
-            {resumeFile && <p className="mt-2 text-xs font-medium text-slate-400">Attached: {resumeFile.name}</p>}
+            {resumeFile && <p className="mt-2 text-xs font-medium text-slate-500">Attached: {resumeFile.name}</p>}
           </div>
 
           <div>
@@ -318,7 +314,7 @@ export default function HomePage() {
           <h2 className="text-lg font-semibold text-rose-700">Request error</h2>
           <p className="mt-2 text-sm text-rose-700">{error}</p>
           {rawResponse && (
-            <pre className="mt-4 overflow-x-auto rounded-xl border border-rose-100 bg-slate-900/65 p-4 text-xs leading-5 text-slate-300">{rawResponse}</pre>
+            <pre className="mt-4 overflow-x-auto rounded-xl border border-rose-100 bg-white p-4 text-xs leading-5 text-slate-700">{rawResponse}</pre>
           )}
         </section>
       )}
@@ -326,48 +322,44 @@ export default function HomePage() {
       {report && (
         <section className={`mt-6 space-y-6 ${cardClass}`}>
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-slate-100">Generated Report</h2>
-            <button
-              type="button"
-              onClick={onExport}
-              className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800"
-            >
+            <h2 className="text-2xl font-bold text-slate-900">Generated Report</h2>
+            <button type="button" onClick={onExport} className="premium-btn rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition">
               Export to .docx
             </button>
           </div>
 
           <div className={subCardClass}>
-            <h3 className="mb-3 text-lg font-semibold text-slate-100">Job Titles</h3>
-            <div className="overflow-hidden rounded-xl border border-slate-700/40">
+            <h3 className="mb-3 text-lg font-semibold text-slate-900">Job Titles</h3>
+            <div className="overflow-hidden rounded-xl border border-slate-200">
               <table className="min-w-full border-collapse text-sm">
-                <thead className="bg-slate-800/70">
+                <thead className="bg-slate-50">
                   <tr>
-                    <th className="border-b border-slate-700/40 px-4 py-3 text-left font-semibold text-slate-300">Title</th>
-                    <th className="border-b border-slate-700/40 px-4 py-3 text-left font-semibold text-slate-300">
+                    <th className="border-b border-slate-200 px-4 py-3 text-left font-semibold text-slate-700">Title</th>
+                    <th className="border-b border-slate-200 px-4 py-3 text-left font-semibold text-slate-700">
                       Responsibilities
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {report.titles.map((title, index) => (
-                    <tr key={`${title.title}-${index}`} className="align-top odd:bg-slate-900/65 even:bg-slate-900/30">
-                      <td className="border-b border-slate-100 px-4 py-3 font-medium text-slate-100">{title.title}</td>
-                      <td className="border-b border-slate-100 px-4 py-3 text-slate-300">{title.responsibilities}</td>
+                    <tr key={`${title.title}-${index}`} className="align-top odd:bg-white even:bg-slate-50/60">
+                      <td className="border-b border-slate-100 px-4 py-3 font-medium text-slate-900">{title.title}</td>
+                      <td className="border-b border-slate-100 px-4 py-3 text-slate-700">{title.responsibilities}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <p className="mt-3 text-sm text-slate-400">{report.section_notes.job_titles}</p>
+            <p className="mt-3 text-sm text-slate-500">{report.section_notes.job_titles}</p>
           </div>
 
           <div className={subCardClass}>
-            <h3 className="mb-3 text-lg font-semibold text-slate-100">Title Groups</h3>
+            <h3 className="mb-3 text-lg font-semibold text-slate-900">Title Groups</h3>
             <div className="grid grid-cols-3 gap-4">
               {(Object.entries(report.title_groups) as [keyof ResearchReport["title_groups"], string[]][]).map(([key, titles]) => (
-                <div key={key} className="rounded-xl border border-slate-700/40 bg-slate-900/70 p-4">
-                  <p className="mb-2 text-sm font-semibold text-slate-200">{titleGroupLabels[key]}</p>
-                  <ul className="list-disc space-y-1 pl-4 text-sm text-slate-300">
+                <div key={key} className="rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="mb-2 text-sm font-semibold text-slate-800">{titleGroupLabels[key]}</p>
+                  <ul className="list-disc space-y-1 pl-4 text-sm text-slate-700">
                     {titles.map((title, index) => (
                       <li key={`${title}-${index}`}>{title}</li>
                     ))}
@@ -375,19 +367,19 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-sm text-slate-400">{report.section_notes.title_groups}</p>
+            <p className="mt-3 text-sm text-slate-500">{report.section_notes.title_groups}</p>
           </div>
 
           <div className={subCardClass}>
-            <h3 className="mb-3 text-lg font-semibold text-slate-100">Companies</h3>
+            <h3 className="mb-3 text-lg font-semibold text-slate-900">Companies</h3>
             <div className="grid grid-cols-2 gap-4">
               {(Object.entries(report.company_priority) as [
                 keyof ResearchReport["company_priority"],
                 ResearchReport["company_priority"][keyof ResearchReport["company_priority"]],
               ][]).map(([key, group]) => (
-                <div key={key} className="rounded-xl border border-slate-700/40 bg-slate-900/70 p-4">
+                <div key={key} className="rounded-xl border border-slate-200 bg-white p-4">
                   <div className="mb-3 flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-300">{companyLabels[key]}</p>
+                    <p className="text-sm font-semibold text-slate-700">{companyLabels[key]}</p>
                     <span
                       className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${priorityBadgeClass[group.priority]}`}
                     >
@@ -398,42 +390,42 @@ export default function HomePage() {
                     {[...group.remote_friendly, ...group.local].map((name, index) => (
                       <span
                         key={`${name}-${index}`}
-                        className="rounded-full border border-indigo-200 bg-indigo-500/15 px-2.5 py-1 text-xs font-medium text-indigo-700"
+                        className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700"
                       >
                         {name}
                       </span>
                     ))}
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-3 rounded-lg bg-slate-900/65 p-3">
+                  <div className="mt-3 grid grid-cols-2 gap-3 rounded-lg bg-white p-3">
                     <div>
-                      <p className="text-xs font-semibold text-slate-300">Remote Friendly</p>
-                      <p className="mt-1 text-xs text-slate-400">{group.remote_friendly.join(", ") || "—"}</p>
+                      <p className="text-xs font-semibold text-slate-700">Remote Friendly</p>
+                      <p className="mt-1 text-xs text-slate-500">{group.remote_friendly.join(", ") || "—"}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-slate-300">Local</p>
-                      <p className="mt-1 text-xs text-slate-400">{group.local.join(", ") || "—"}</p>
+                      <p className="text-xs font-semibold text-slate-700">Local</p>
+                      <p className="mt-1 text-xs text-slate-500">{group.local.join(", ") || "—"}</p>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-sm text-slate-400">{report.section_notes.companies}</p>
+            <p className="mt-3 text-sm text-slate-500">{report.section_notes.companies}</p>
           </div>
 
           <div className={subCardClass}>
-            <h3 className="mb-3 text-lg font-semibold text-slate-100">Vacancies</h3>
+            <h3 className="mb-3 text-lg font-semibold text-slate-900">Vacancies</h3>
             <div className="grid grid-cols-2 gap-4">
               {report.vacancies.map((vacancy, index) => (
-                <article key={`${vacancy.url}-${index}`} className="rounded-xl border border-slate-700/40 bg-slate-900/70 p-4">
-                  <p className="text-sm font-semibold text-slate-100">{vacancy.title}</p>
-                  <p className="mt-1 text-sm text-slate-300">{vacancy.company}</p>
-                  <p className="mt-2 inline-block rounded-md bg-slate-800/70 px-2 py-1 text-xs font-semibold text-slate-300">
+                <article key={`${vacancy.url}-${index}`} className="rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="text-sm font-semibold text-slate-900">{vacancy.title}</p>
+                  <p className="mt-1 text-sm text-slate-700">{vacancy.company}</p>
+                  <p className="mt-2 inline-block rounded-md bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">
                     {vacancy.type}
                   </p>
-                  <p className="ml-2 mt-2 inline-block rounded-md border border-slate-700/40 bg-slate-900/65 px-2 py-1 text-xs font-semibold text-slate-300">
+                  <p className="ml-2 mt-2 inline-block rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700">
                     Status: {vacancy.status}
                   </p>
-                  <p className="mt-2 text-xs text-slate-400">{vacancy.notes}</p>
+                  <p className="mt-2 text-xs text-slate-500">{vacancy.notes}</p>
                   <a
                     href={vacancy.url}
                     target="_blank"
@@ -445,13 +437,13 @@ export default function HomePage() {
                 </article>
               ))}
             </div>
-            <p className="mt-3 text-sm text-slate-400">{report.section_notes.vacancies}</p>
+            <p className="mt-3 text-sm text-slate-500">{report.section_notes.vacancies}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className={subCardClass}>
-              <h3 className="text-lg font-semibold text-slate-100">Salary</h3>
-              <div className="mt-3 space-y-2 text-sm text-slate-300">
+              <h3 className="text-lg font-semibold text-slate-900">Salary</h3>
+              <div className="mt-3 space-y-2 text-sm text-slate-700">
                 <p>
                   <span className="font-semibold">Min:</span> {report.salary.min}
                 </p>
@@ -465,14 +457,14 @@ export default function HomePage() {
                   <span className="font-semibold">Notes:</span> {report.salary.notes}
                 </p>
               </div>
-              <p className="mt-3 text-sm text-slate-400">{report.section_notes.salary}</p>
+              <p className="mt-3 text-sm text-slate-500">{report.section_notes.salary}</p>
             </div>
 
             <div className={subCardClass}>
-              <h3 className="text-lg font-semibold text-slate-100">LinkedIn Profiles</h3>
-              <ul className="mt-3 space-y-2 text-sm text-slate-300">
+              <h3 className="text-lg font-semibold text-slate-900">LinkedIn Profiles</h3>
+              <ul className="mt-3 space-y-2 text-sm text-slate-700">
                 {report.profiles.map((profile, index) => (
-                  <li key={`${profile.url}-${index}`} className="rounded-lg border border-slate-700/40 bg-slate-900/50 p-3">
+                  <li key={`${profile.url}-${index}`} className="rounded-lg border border-slate-200 bg-white/90 p-3">
                     <a
                       href={profile.url}
                       target="_blank"
@@ -482,60 +474,60 @@ export default function HomePage() {
                       {profile.url}
                     </a>
                     <p className="mt-1 text-xs">{profile.notes}</p>
-                    <p className="mt-1 text-xs font-medium text-slate-400">Borrow: {profile.profile_notes}</p>
+                    <p className="mt-1 text-xs font-medium text-slate-500">Borrow: {profile.profile_notes}</p>
                   </li>
                 ))}
               </ul>
-              <p className="mt-3 text-sm text-slate-400">{report.section_notes.profiles}</p>
+              <p className="mt-3 text-sm text-slate-500">{report.section_notes.profiles}</p>
             </div>
           </div>
 
           <div className={subCardClass}>
-            <h3 className="mb-3 text-lg font-semibold text-slate-100">Requirements</h3>
+            <h3 className="mb-3 text-lg font-semibold text-slate-900">Requirements</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-xl border border-slate-700/40 bg-slate-900/70 p-4">
-                <h4 className="text-sm font-semibold text-slate-300">Core responsibilities</h4>
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300">
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h4 className="text-sm font-semibold text-slate-700">Core responsibilities</h4>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
                   {report.requirements.core_responsibilities.map((item, index) => (
                     <li key={`${item}-${index}`}>{item}</li>
                   ))}
                 </ul>
               </div>
 
-              <div className="rounded-xl border border-slate-700/40 bg-slate-900/70 p-4">
-                <h4 className="text-sm font-semibold text-slate-300">Core requirements</h4>
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300">
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <h4 className="text-sm font-semibold text-slate-700">Core requirements</h4>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
                   {report.requirements.core_requirements.map((item, index) => (
                     <li key={`${item}-${index}`}>{item}</li>
                   ))}
                 </ul>
               </div>
 
-              <div className="col-span-2 rounded-xl border border-slate-700/40 bg-slate-900/70 p-4">
-                <h4 className="text-sm font-semibold text-slate-300">Nice to have</h4>
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300">
+              <div className="col-span-2 rounded-xl border border-slate-200 bg-white p-4">
+                <h4 className="text-sm font-semibold text-slate-700">Nice to have</h4>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
                   {report.requirements.nice_to_have.map((item, index) => (
                     <li key={`${item}-${index}`}>{item}</li>
                   ))}
                 </ul>
               </div>
             </div>
-            <p className="mt-3 text-sm text-slate-400">{report.section_notes.requirements}</p>
+            <p className="mt-3 text-sm text-slate-500">{report.section_notes.requirements}</p>
           </div>
 
           <div className={subCardClass}>
-            <h3 className="text-lg font-semibold text-slate-100">Stop List</h3>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300">
+            <h3 className="text-lg font-semibold text-slate-900">Stop List</h3>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
               {report.stop_list.map((item, index) => (
                 <li key={`${item}-${index}`}>{item}</li>
               ))}
             </ul>
-            <p className="mt-3 text-sm text-slate-400">{report.section_notes.stop_list}</p>
+            <p className="mt-3 text-sm text-slate-500">{report.section_notes.stop_list}</p>
           </div>
 
           <div className={subCardClass}>
-            <h3 className="text-lg font-semibold text-slate-100">Strategy</h3>
-            <div className="mt-3 grid grid-cols-3 gap-4 text-sm text-slate-300">
+            <h3 className="text-lg font-semibold text-slate-900">Strategy</h3>
+            <div className="mt-3 grid grid-cols-3 gap-4 text-sm text-slate-700">
               <p>
                 <span className="font-semibold">Connections target:</span> {report.strategy.connections_target}
               </p>
@@ -546,7 +538,7 @@ export default function HomePage() {
                 <span className="font-semibold">Notes:</span> {report.strategy.notes}
               </p>
             </div>
-            <p className="mt-3 text-sm text-slate-400">{report.section_notes.strategy}</p>
+            <p className="mt-3 text-sm text-slate-500">{report.section_notes.strategy}</p>
           </div>
         </section>
       )}
