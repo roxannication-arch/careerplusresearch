@@ -92,3 +92,8 @@ body {
   background: rgba(99, 102, 241, 0.12);
   color: #4338ca;
 }
+
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}

@@ -202,7 +202,7 @@ export default function HomePage() {
   };
 
   return (
-    <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-12">
+    <main className="mx-auto max-w-[1500px] overflow-x-clip px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-12">
       <div className="relative overflow-hidden rounded-2xl border border-indigo-200/70 bg-gradient-to-r from-slate-100 via-white to-indigo-100 p-5 text-slate-900 shadow-[0_30px_90px_-35px_rgba(51,65,85,0.32)] sm:rounded-3xl sm:p-8">
         <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-fuchsia-200/50 blur-3xl sm:h-48 sm:w-48" />
         <div className="absolute -left-10 bottom-0 h-28 w-28 rounded-full bg-sky-200/40 blur-3xl sm:h-36 sm:w-36" />
@@ -312,7 +312,7 @@ export default function HomePage() {
               }}
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
             />
-            {resumeFile && <p className="mt-2 text-xs font-medium text-slate-500">Attached: {resumeFile.name}</p>}
+            {resumeFile && <p className="mt-2 break-all text-xs font-medium text-slate-500">Attached: {resumeFile.name}</p>}
           </div>
 
           <div>
@@ -362,8 +362,16 @@ export default function HomePage() {
 
           <div className={subCardClass}>
             <h3 className="mb-3 text-lg font-semibold text-slate-900">Job Titles</h3>
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
-              <table className="min-w-[640px] border-collapse text-sm sm:min-w-full">
+            <div className="space-y-3 sm:hidden">
+              {report.titles.map((title, index) => (
+                <article key={`${title.title}-${index}`} className="rounded-xl border border-slate-200 bg-white p-3">
+                  <p className="text-sm font-semibold text-slate-900 break-words">{title.title}</p>
+                  <p className="mt-1 text-sm text-slate-700 break-words">{title.responsibilities}</p>
+                </article>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto rounded-xl border border-slate-200 sm:block">
+              <table className="min-w-full border-collapse text-sm">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="border-b border-slate-200 px-4 py-3 text-left font-semibold text-slate-700">Title</th>
@@ -375,14 +383,14 @@ export default function HomePage() {
                 <tbody>
                   {report.titles.map((title, index) => (
                     <tr key={`${title.title}-${index}`} className="align-top odd:bg-white even:bg-slate-50/60">
-                      <td className="border-b border-slate-100 px-4 py-3 font-medium text-slate-900">{title.title}</td>
-                      <td className="border-b border-slate-100 px-4 py-3 text-slate-700">{title.responsibilities}</td>
+                      <td className="border-b border-slate-100 px-4 py-3 font-medium text-slate-900 break-words">{title.title}</td>
+                      <td className="border-b border-slate-100 px-4 py-3 text-slate-700 break-words">{title.responsibilities}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <p className="mt-3 text-sm text-slate-500">{report.section_notes.job_titles}</p>
+            <p className="mt-3 break-words text-sm text-slate-500">{report.section_notes.job_titles}</p>
           </div>
 
           <div className={subCardClass}>
@@ -393,13 +401,15 @@ export default function HomePage() {
                   <p className="mb-2 text-sm font-semibold text-slate-800">{titleGroupLabels[key]}</p>
                   <ul className="list-disc space-y-1 pl-4 text-sm text-slate-700">
                     {titles.map((title, index) => (
-                      <li key={`${title}-${index}`}>{title}</li>
+                      <li key={`${title}-${index}`} className="break-words">
+                        {title}
+                      </li>
                     ))}
                   </ul>
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-sm text-slate-500">{report.section_notes.title_groups}</p>
+            <p className="mt-3 break-words text-sm text-slate-500">{report.section_notes.title_groups}</p>
           </div>
 
           <div className={subCardClass}>
@@ -422,7 +432,7 @@ export default function HomePage() {
                     {[...group.remote_friendly, ...group.local].map((name, index) => (
                       <span
                         key={`${name}-${index}`}
-                        className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700"
+                        className="max-w-full break-words rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700"
                       >
                         {name}
                       </span>
@@ -431,45 +441,45 @@ export default function HomePage() {
                   <div className="mt-3 grid grid-cols-1 gap-3 rounded-lg bg-white p-3 sm:grid-cols-2">
                     <div>
                       <p className="text-xs font-semibold text-slate-700">Remote Friendly</p>
-                      <p className="mt-1 text-xs text-slate-500">{group.remote_friendly.join(", ") || "—"}</p>
+                      <p className="mt-1 break-words text-xs text-slate-500">{group.remote_friendly.join(", ") || "—"}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-700">Local</p>
-                      <p className="mt-1 text-xs text-slate-500">{group.local.join(", ") || "—"}</p>
+                      <p className="mt-1 break-words text-xs text-slate-500">{group.local.join(", ") || "—"}</p>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-sm text-slate-500">{report.section_notes.companies}</p>
+            <p className="mt-3 break-words text-sm text-slate-500">{report.section_notes.companies}</p>
           </div>
 
           <div className={subCardClass}>
             <h3 className="mb-3 text-lg font-semibold text-slate-900">Vacancies</h3>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {report.vacancies.map((vacancy, index) => (
-                <article key={`${vacancy.url}-${index}`} className="rounded-xl border border-slate-200 bg-white p-4">
-                  <p className="text-sm font-semibold text-slate-900">{vacancy.title}</p>
-                  <p className="mt-1 text-sm text-slate-700">{vacancy.company}</p>
+                <article key={`${vacancy.url}-${index}`} className="min-w-0 rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="break-words text-sm font-semibold text-slate-900">{vacancy.title}</p>
+                  <p className="mt-1 break-words text-sm text-slate-700">{vacancy.company}</p>
                   <p className="mt-2 inline-block rounded-md bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">
                     {vacancy.type}
                   </p>
                   <p className="ml-2 mt-2 inline-block rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700">
                     Status: {vacancy.status}
                   </p>
-                  <p className="mt-2 text-xs text-slate-500">{vacancy.notes}</p>
+                  <p className="mt-2 break-words text-xs text-slate-500">{vacancy.notes}</p>
                   <a
                     href={vacancy.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-3 inline-block text-sm font-medium text-indigo-700 underline-offset-2 hover:underline"
+                    className="mt-3 inline-block break-all text-sm font-medium text-indigo-700 underline-offset-2 hover:underline"
                   >
                     Open vacancy
                   </a>
                 </article>
               ))}
             </div>
-            <p className="mt-3 text-sm text-slate-500">{report.section_notes.vacancies}</p>
+            <p className="mt-3 break-words text-sm text-slate-500">{report.section_notes.vacancies}</p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -486,10 +496,10 @@ export default function HomePage() {
                   <span className="font-semibold">Average:</span> {report.salary.average}
                 </p>
                 <p>
-                  <span className="font-semibold">Notes:</span> {report.salary.notes}
+                  <span className="font-semibold">Notes:</span> <span className="break-words">{report.salary.notes}</span>
                 </p>
               </div>
-              <p className="mt-3 text-sm text-slate-500">{report.section_notes.salary}</p>
+              <p className="mt-3 break-words text-sm text-slate-500">{report.section_notes.salary}</p>
             </div>
 
             <div className={subCardClass}>
@@ -501,16 +511,16 @@ export default function HomePage() {
                       href={profile.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="font-medium text-indigo-700 underline-offset-2 hover:underline"
+                      className="break-all font-medium text-indigo-700 underline-offset-2 hover:underline"
                     >
                       {profile.url}
                     </a>
-                    <p className="mt-1 text-xs">{profile.notes}</p>
-                    <p className="mt-1 text-xs font-medium text-slate-500">Borrow: {profile.profile_notes}</p>
+                    <p className="mt-1 break-words text-xs">{profile.notes}</p>
+                    <p className="mt-1 break-words text-xs font-medium text-slate-500">Borrow: {profile.profile_notes}</p>
                   </li>
                 ))}
               </ul>
-              <p className="mt-3 text-sm text-slate-500">{report.section_notes.profiles}</p>
+              <p className="mt-3 break-words text-sm text-slate-500">{report.section_notes.profiles}</p>
             </div>
           </div>
 
@@ -521,7 +531,9 @@ export default function HomePage() {
                 <h4 className="text-sm font-semibold text-slate-700">Core responsibilities</h4>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
                   {report.requirements.core_responsibilities.map((item, index) => (
-                    <li key={`${item}-${index}`}>{item}</li>
+                    <li key={`${item}-${index}`} className="break-words">
+                      {item}
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -530,7 +542,9 @@ export default function HomePage() {
                 <h4 className="text-sm font-semibold text-slate-700">Core requirements</h4>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
                   {report.requirements.core_requirements.map((item, index) => (
-                    <li key={`${item}-${index}`}>{item}</li>
+                    <li key={`${item}-${index}`} className="break-words">
+                      {item}
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -539,38 +553,42 @@ export default function HomePage() {
                 <h4 className="text-sm font-semibold text-slate-700">Nice to have</h4>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
                   {report.requirements.nice_to_have.map((item, index) => (
-                    <li key={`${item}-${index}`}>{item}</li>
+                    <li key={`${item}-${index}`} className="break-words">
+                      {item}
+                    </li>
                   ))}
                 </ul>
               </div>
             </div>
-            <p className="mt-3 text-sm text-slate-500">{report.section_notes.requirements}</p>
+            <p className="mt-3 break-words text-sm text-slate-500">{report.section_notes.requirements}</p>
           </div>
 
           <div className={subCardClass}>
             <h3 className="text-lg font-semibold text-slate-900">Stop List</h3>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
               {report.stop_list.map((item, index) => (
-                <li key={`${item}-${index}`}>{item}</li>
+                <li key={`${item}-${index}`} className="break-words">
+                  {item}
+                </li>
               ))}
             </ul>
-            <p className="mt-3 text-sm text-slate-500">{report.section_notes.stop_list}</p>
+            <p className="mt-3 break-words text-sm text-slate-500">{report.section_notes.stop_list}</p>
           </div>
 
           <div className={subCardClass}>
             <h3 className="text-lg font-semibold text-slate-900">Strategy</h3>
             <div className="mt-3 grid grid-cols-1 gap-4 text-sm text-slate-700 md:grid-cols-3">
-              <p>
+              <p className="break-words">
                 <span className="font-semibold">Connections target:</span> {report.strategy.connections_target}
               </p>
-              <p>
+              <p className="break-words">
                 <span className="font-semibold">Applications target:</span> {report.strategy.applications_target}
               </p>
-              <p>
+              <p className="break-words">
                 <span className="font-semibold">Notes:</span> {report.strategy.notes}
               </p>
             </div>
-            <p className="mt-3 text-sm text-slate-500">{report.section_notes.strategy}</p>
+            <p className="mt-3 break-words text-sm text-slate-500">{report.section_notes.strategy}</p>
           </div>
         </section>
       )}
