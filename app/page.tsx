@@ -21,7 +21,7 @@ type GenericErrorResponse = {
   rawText?: string;
 };
 
-const REQUEST_TIMEOUT_MS = 120_000;
+const REQUEST_TIMEOUT_MS = 210_000;
 
 const initialForm: ResearchPayload = {
   clientName: "",
@@ -95,9 +95,10 @@ export default function HomePage() {
     setReport(null);
     setRawResponse("");
 
+    let timeoutId: number | undefined;
     try {
       const controller = new AbortController();
-      const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
       const body = new FormData();
       body.append("clientName", formData.clientName);
       body.append("specialty", formData.specialty);
@@ -114,7 +115,6 @@ export default function HomePage() {
         body,
         signal: controller.signal,
       });
-      window.clearTimeout(timeoutId);
 
       const responseText = await response.text();
       let data: ApiSuccess | ApiError | GenericErrorResponse = {};
@@ -134,11 +134,14 @@ export default function HomePage() {
       setRawResponse("rawText" in data ? data.rawText ?? "" : "");
     } catch (requestError) {
       if (requestError instanceof DOMException && requestError.name === "AbortError") {
-        setError("The request timed out after 120 seconds. Please try again.");
+        setError("The request timed out after 210 seconds. Please try again.");
       } else {
         setError(requestError instanceof Error ? requestError.message : "Unexpected error.");
       }
     } finally {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
       setIsLoading(false);
     }
   };

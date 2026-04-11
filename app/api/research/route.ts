@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import type { ResearchPayload, ResearchReport } from "@/lib/types";
 
 const SYSTEM_PROMPT = `You are a senior career market researcher specializing in US and job markets. You use web search to find current, accurate data — never fabricate job postings or URLs. Return valid JSON only. No markdown, no backticks, no text before or after the JSON.`;
+const ANTHROPIC_TIMEOUT_MS = 180_000;
 
 const USER_PROMPT_TEMPLATE = `Research the job market for this client and return ONLY a JSON object.
 
@@ -106,7 +107,7 @@ function validatePayload(payload: Partial<ResearchPayload>): string | null {
 }
 
 function normalizeResumeText(raw: string): string {
-  return raw.replace(/\s+/g, " ").trim().slice(0, 12000);
+  return raw.replace(/\s+/g, " ").trim().slice(0, 6000);
 }
 
 async function extractResumeText(file: File): Promise<string> {
@@ -202,7 +203,7 @@ export async function POST(request: Request) {
         tools: [{ type: "web_search_20250305", name: "web_search" }],
         messages: [{ role: "user", content: buildUserPrompt(payload, resumeText) }],
       },
-      { timeout: 100_000 },
+      { timeout: ANTHROPIC_TIMEOUT_MS },
     );
 
     const rawText = textFromResponse(response);
