@@ -60,8 +60,8 @@ const priorityBadgeClass: Record<"High" | "Medium" | "Low", string> = {
 const fieldClass =
   "input-neo w-full rounded-xl px-3 py-2.5 text-sm shadow-sm outline-none transition";
 const textareaClass = `${fieldClass} min-h-[110px]`;
-const cardClass = "glass-card rounded-3xl p-8";
-const subCardClass = "section-card rounded-2xl p-4";
+const cardClass = "glass-card rounded-2xl p-4 sm:rounded-3xl sm:p-8";
+const subCardClass = "section-card rounded-2xl p-4 sm:p-5";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{children}</label>;
@@ -202,20 +202,20 @@ export default function HomePage() {
   };
 
   return (
-    <main className="mx-auto max-w-[1500px] px-10 py-12">
-      <div className="relative overflow-hidden rounded-3xl border border-indigo-200/70 bg-gradient-to-r from-slate-100 via-white to-indigo-100 p-8 text-slate-900 shadow-[0_30px_90px_-35px_rgba(51,65,85,0.32)]">
-        <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-fuchsia-200/50 blur-3xl" />
-        <div className="absolute -left-10 bottom-0 h-36 w-36 rounded-full bg-sky-200/40 blur-3xl" />
+    <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-12">
+      <div className="relative overflow-hidden rounded-2xl border border-indigo-200/70 bg-gradient-to-r from-slate-100 via-white to-indigo-100 p-5 text-slate-900 shadow-[0_30px_90px_-35px_rgba(51,65,85,0.32)] sm:rounded-3xl sm:p-8">
+        <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-fuchsia-200/50 blur-3xl sm:h-48 sm:w-48" />
+        <div className="absolute -left-10 bottom-0 h-28 w-28 rounded-full bg-sky-200/40 blur-3xl sm:h-36 sm:w-36" />
         <div className="relative">
           <p className="inline-flex rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">
             CareerPlus Intelligence
           </p>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight">Research Generator</h1>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">Research Generator</h1>
           <p className="mt-3 max-w-2xl text-sm text-slate-700/90">
             Generate premium, consultant-ready US market research with strategic interpretations, vacancy intelligence, and
             export-ready documentation.
           </p>
-          <div className="mt-5 flex gap-2 text-xs">
+          <div className="mt-5 flex flex-wrap gap-2 text-xs">
             <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1">Desktop-first</span>
             <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1">Anthropic + Web Search</span>
             <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1">Docx Export</span>
@@ -227,7 +227,7 @@ export default function HomePage() {
         <p className="mb-4 text-sm font-semibold text-slate-800">Client Intake</p>
         <p className="-mt-2 mb-6 text-xs text-slate-500">Fill in profile details to generate a high-signal research brief.</p>
         <form onSubmit={onSubmit} className="space-y-5">
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <div>
               <FieldLabel>Client name</FieldLabel>
               <input type="text" value={formData.clientName} onChange={onChange("clientName")} required className={fieldClass} placeholder="e.g. Jane Doe" />
@@ -258,7 +258,7 @@ export default function HomePage() {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <FieldLabel>Target location</FieldLabel>
               <input type="text" value={formData.location} onChange={onChange("location")} required className={fieldClass} />
@@ -275,15 +275,19 @@ export default function HomePage() {
               </select>
             </div>
 
-            <div className="flex items-end gap-3">
+            <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:items-end lg:col-span-1">
               <button
                 type="submit"
                 disabled={!canSubmit || isLoading}
-                className="premium-btn rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition hover:scale-[1.01] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-55"
+                className="premium-btn w-full rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition hover:scale-[1.01] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-55 sm:w-auto"
               >
                 {isLoading ? "Researching..." : "Generate report"}
               </button>
-              <button type="button" onClick={onReset} className="muted-btn rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-700 transition">
+              <button
+                type="button"
+                onClick={onReset}
+                className="muted-btn w-full rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-700 transition sm:w-auto"
+              >
                 Reset
               </button>
             </div>
@@ -325,7 +329,7 @@ export default function HomePage() {
       </section>
 
       {error && (
-        <section className="mt-6 rounded-3xl border border-rose-200 bg-gradient-to-br from-rose-50 to-white p-6 shadow-sm">
+        <section className="mt-6 rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50 to-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
           <h2 className="text-lg font-semibold text-rose-700">Request error</h2>
           <p className="mt-2 text-sm text-rose-700">{error}</p>
           {rawResponse && (
@@ -336,13 +340,21 @@ export default function HomePage() {
 
       {report && (
         <section className={`mt-6 space-y-6 ${cardClass}`}>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-2xl font-bold text-slate-900">Generated Report</h2>
-            <div className="flex gap-2">
-              <button type="button" onClick={onExportPdf} className="premium-btn rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={onExportPdf}
+                className="premium-btn w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition sm:w-auto"
+              >
                 Export to PDF
               </button>
-              <button type="button" onClick={onExport} className="muted-btn rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition">
+              <button
+                type="button"
+                onClick={onExport}
+                className="muted-btn w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition sm:w-auto"
+              >
                 Export to .docx
               </button>
             </div>
@@ -350,8 +362,8 @@ export default function HomePage() {
 
           <div className={subCardClass}>
             <h3 className="mb-3 text-lg font-semibold text-slate-900">Job Titles</h3>
-            <div className="overflow-hidden rounded-xl border border-slate-200">
-              <table className="min-w-full border-collapse text-sm">
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="min-w-[640px] border-collapse text-sm sm:min-w-full">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="border-b border-slate-200 px-4 py-3 text-left font-semibold text-slate-700">Title</th>
@@ -375,7 +387,7 @@ export default function HomePage() {
 
           <div className={subCardClass}>
             <h3 className="mb-3 text-lg font-semibold text-slate-900">Title Groups</h3>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {(Object.entries(report.title_groups) as [keyof ResearchReport["title_groups"], string[]][]).map(([key, titles]) => (
                 <div key={key} className="rounded-xl border border-slate-200 bg-white p-4">
                   <p className="mb-2 text-sm font-semibold text-slate-800">{titleGroupLabels[key]}</p>
@@ -392,13 +404,13 @@ export default function HomePage() {
 
           <div className={subCardClass}>
             <h3 className="mb-3 text-lg font-semibold text-slate-900">Companies</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {(Object.entries(report.company_priority) as [
                 keyof ResearchReport["company_priority"],
                 ResearchReport["company_priority"][keyof ResearchReport["company_priority"]],
               ][]).map(([key, group]) => (
                 <div key={key} className="rounded-xl border border-slate-200 bg-white p-4">
-                  <div className="mb-3 flex items-center justify-between">
+                  <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm font-semibold text-slate-700">{companyLabels[key]}</p>
                     <span
                       className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${priorityBadgeClass[group.priority]}`}
@@ -416,7 +428,7 @@ export default function HomePage() {
                       </span>
                     ))}
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-3 rounded-lg bg-white p-3">
+                  <div className="mt-3 grid grid-cols-1 gap-3 rounded-lg bg-white p-3 sm:grid-cols-2">
                     <div>
                       <p className="text-xs font-semibold text-slate-700">Remote Friendly</p>
                       <p className="mt-1 text-xs text-slate-500">{group.remote_friendly.join(", ") || "—"}</p>
@@ -434,7 +446,7 @@ export default function HomePage() {
 
           <div className={subCardClass}>
             <h3 className="mb-3 text-lg font-semibold text-slate-900">Vacancies</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {report.vacancies.map((vacancy, index) => (
                 <article key={`${vacancy.url}-${index}`} className="rounded-xl border border-slate-200 bg-white p-4">
                   <p className="text-sm font-semibold text-slate-900">{vacancy.title}</p>
@@ -460,7 +472,7 @@ export default function HomePage() {
             <p className="mt-3 text-sm text-slate-500">{report.section_notes.vacancies}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <div className={subCardClass}>
               <h3 className="text-lg font-semibold text-slate-900">Salary</h3>
               <div className="mt-3 space-y-2 text-sm text-slate-700">
@@ -504,7 +516,7 @@ export default function HomePage() {
 
           <div className={subCardClass}>
             <h3 className="mb-3 text-lg font-semibold text-slate-900">Requirements</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div className="rounded-xl border border-slate-200 bg-white p-4">
                 <h4 className="text-sm font-semibold text-slate-700">Core responsibilities</h4>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
@@ -523,7 +535,7 @@ export default function HomePage() {
                 </ul>
               </div>
 
-              <div className="col-span-2 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-2">
                 <h4 className="text-sm font-semibold text-slate-700">Nice to have</h4>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
                   {report.requirements.nice_to_have.map((item, index) => (
@@ -547,7 +559,7 @@ export default function HomePage() {
 
           <div className={subCardClass}>
             <h3 className="text-lg font-semibold text-slate-900">Strategy</h3>
-            <div className="mt-3 grid grid-cols-3 gap-4 text-sm text-slate-700">
+            <div className="mt-3 grid grid-cols-1 gap-4 text-sm text-slate-700 md:grid-cols-3">
               <p>
                 <span className="font-semibold">Connections target:</span> {report.strategy.connections_target}
               </p>
