@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import mammoth from "mammoth";
-import pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import { NextResponse } from "next/server";
 import type { ResearchPayload, ResearchReport } from "@/lib/types";
 
@@ -95,8 +95,13 @@ async function extractResumeText(file: File): Promise<string> {
   }
 
   if (ext === "pdf") {
-    const result = await pdfParse(buffer);
-    return normalizeResumeText(result.text);
+    const parser = new PDFParse({ data: new Uint8Array(arrayBuffer) });
+    try {
+      const result = await parser.getText();
+      return normalizeResumeText(result.text);
+    } finally {
+      await parser.destroy();
+    }
   }
 
   throw new Error("Unsupported resume format. Use PDF, DOCX, or TXT.");
