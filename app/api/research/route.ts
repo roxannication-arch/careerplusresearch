@@ -194,13 +194,16 @@ export async function POST(request: Request) {
 
   try {
     const anthropic = new Anthropic({ apiKey });
-    const response = await anthropic.messages.create({
-      model: "claude-opus-4-5",
-      max_tokens: 8000,
-      system: SYSTEM_PROMPT,
-      tools: [{ type: "web_search_20250305", name: "web_search" }],
-      messages: [{ role: "user", content: buildUserPrompt(payload, resumeText) }],
-    });
+    const response = await anthropic.messages.create(
+      {
+        model: "claude-opus-4-5",
+        max_tokens: 8000,
+        system: SYSTEM_PROMPT,
+        tools: [{ type: "web_search_20250305", name: "web_search" }],
+        messages: [{ role: "user", content: buildUserPrompt(payload, resumeText) }],
+      },
+      { timeout: 100_000 },
+    );
 
     const rawText = textFromResponse(response);
     const parsed = tryParseJSONFromModelText(rawText);
@@ -214,6 +217,12 @@ export async function POST(request: Request) {
       rawText,
     });
   } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      return NextResponse.json(
+        { error: "Research timed out. Please retry with shorter notes or resume text." },
+        { status: 504 },
+      );
+    }
     const message = error instanceof Error ? error.message : "Unknown server error.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
