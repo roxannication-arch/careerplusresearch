@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { generateResearchDocxBlob } from "@/lib/docx";
+import { generateResearchPdfBlob } from "@/lib/pdf";
 import type { ExperienceLevel, ResearchPayload, ResearchReport } from "@/lib/types";
 
 type ApiSuccess = {
@@ -186,6 +187,20 @@ export default function HomePage() {
     URL.revokeObjectURL(url);
   };
 
+  const onExportPdf = async () => {
+    if (!report) return;
+    const blob = await generateResearchPdfBlob(report, formData.clientName);
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    const safeClientName = sanitizeFilename(formData.clientName) || "client";
+    anchor.href = url;
+    anchor.download = `${safeClientName}-careerplus-research.pdf`;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <main className="mx-auto max-w-[1500px] px-10 py-12">
       <div className="relative overflow-hidden rounded-3xl border border-indigo-200/70 bg-gradient-to-r from-slate-100 via-white to-indigo-100 p-8 text-slate-900 shadow-[0_30px_90px_-35px_rgba(51,65,85,0.32)]">
@@ -323,9 +338,14 @@ export default function HomePage() {
         <section className={`mt-6 space-y-6 ${cardClass}`}>
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-slate-900">Generated Report</h2>
-            <button type="button" onClick={onExport} className="premium-btn rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition">
-              Export to .docx
-            </button>
+            <div className="flex gap-2">
+              <button type="button" onClick={onExportPdf} className="premium-btn rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition">
+                Export to PDF
+              </button>
+              <button type="button" onClick={onExport} className="muted-btn rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition">
+                Export to .docx
+              </button>
+            </div>
           </div>
 
           <div className={subCardClass}>
