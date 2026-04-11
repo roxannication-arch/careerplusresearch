@@ -41,12 +41,45 @@ export async function generateResearchDocxBlob(report: ResearchReport, clientNam
     rows: titleRows,
   });
 
+  const groupedTitlesRows = [
+    new TableRow({
+      children: [
+        new TableCell({ children: [body("Group")] }),
+        new TableCell({ children: [body("Titles")] }),
+      ],
+    }),
+    new TableRow({
+      children: [
+        new TableCell({ children: [body("Standard")] }),
+        new TableCell({ children: [body(report.title_groups.standard.join("; "))] }),
+      ],
+    }),
+    new TableRow({
+      children: [
+        new TableCell({ children: [body("Niche")] }),
+        new TableCell({ children: [body(report.title_groups.niche.join("; "))] }),
+      ],
+    }),
+    new TableRow({
+      children: [
+        new TableCell({ children: [body("Senior")] }),
+        new TableCell({ children: [body(report.title_groups.senior.join("; "))] }),
+      ],
+    }),
+  ];
+
+  const groupedTitlesTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: groupedTitlesRows,
+  });
+
   const vacancyRows = [
     new TableRow({
       children: [
         new TableCell({ children: [body("Company")] }),
         new TableCell({ children: [body("Role")] }),
         new TableCell({ children: [body("Type")] }),
+        new TableCell({ children: [body("Status")] }),
         new TableCell({ children: [body("URL")] }),
       ],
     }),
@@ -57,6 +90,7 @@ export async function generateResearchDocxBlob(report: ResearchReport, clientNam
             new TableCell({ children: [body(item.company)] }),
             new TableCell({ children: [body(item.title)] }),
             new TableCell({ children: [body(item.type)] }),
+            new TableCell({ children: [body(item.status)] }),
             new TableCell({ children: [body(item.url)] }),
           ],
         }),
@@ -76,22 +110,34 @@ export async function generateResearchDocxBlob(report: ResearchReport, clientNam
     }),
     heading("Job Titles"),
     titlesTable,
+    body(`Section note: ${report.section_notes.job_titles}`),
+    heading("Title Groups"),
+    groupedTitlesTable,
     heading("Companies"),
   ];
 
-  (Object.entries(report.companies) as [keyof ResearchReport["companies"], string[]][]).forEach(([key, values]) => {
-    sectionChildren.push(body(`${key.replaceAll("_", " ")}:`));
-    values.forEach((value) => sectionChildren.push(bullet(value)));
-  });
+  (
+    Object.entries(report.company_priority) as [
+      keyof ResearchReport["company_priority"],
+      ResearchReport["company_priority"][keyof ResearchReport["company_priority"]],
+    ][]
+  ).forEach(([key, values]) => {
+      sectionChildren.push(body(`${key.replaceAll("_", " ")} (Priority: ${values.priority})`));
+      sectionChildren.push(body(`Remote friendly: ${values.remote_friendly.join(", ")}`));
+      sectionChildren.push(body(`Local: ${values.local.join(", ")}`));
+    },
+  );
 
   sectionChildren.push(
     heading("Vacancies"),
     vacanciesTable,
+    body(`Section note: ${report.section_notes.vacancies}`),
     heading("Salary"),
     body(`Min: ${report.salary.min}`),
     body(`Max: ${report.salary.max}`),
     body(`Average: ${report.salary.average}`),
     body(`Notes: ${report.salary.notes}`),
+    body(`Section note: ${report.section_notes.salary}`),
     heading("Requirements"),
     body("Core Responsibilities"),
   );
@@ -101,17 +147,23 @@ export async function generateResearchDocxBlob(report: ResearchReport, clientNam
   report.requirements.core_requirements.forEach((item) => sectionChildren.push(bullet(item)));
   sectionChildren.push(body("Nice to Have"));
   report.requirements.nice_to_have.forEach((item) => sectionChildren.push(bullet(item)));
+  sectionChildren.push(body(`Section note: ${report.section_notes.requirements}`));
 
   sectionChildren.push(heading("LinkedIn Profiles"));
   report.profiles.forEach((profile) => {
-    sectionChildren.push(body(profile.url), body(`Notes: ${profile.notes}`));
+    sectionChildren.push(body(profile.url), body(`Notes: ${profile.notes}`), body(`What to borrow: ${profile.profile_notes}`));
   });
+  sectionChildren.push(body(`Section note: ${report.section_notes.profiles}`));
 
   sectionChildren.push(
+    heading("Stop List"),
+    ...report.stop_list.map((item) => bullet(item)),
+    body(`Section note: ${report.section_notes.stop_list}`),
     heading("Strategy"),
     body(`Connections target: ${report.strategy.connections_target}`),
     body(`Applications target: ${report.strategy.applications_target}`),
     body(`Notes: ${report.strategy.notes}`),
+    body(`Section note: ${report.section_notes.strategy}`),
   );
 
   const doc = new Document({

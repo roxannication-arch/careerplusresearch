@@ -36,12 +36,24 @@ const MAX_RESUME_BYTES = 4 * 1024 * 1024;
 
 const experienceOptions: ExperienceLevel[] = ["Junior 0-2yr", "Middle 2-5yr", "Senior 5+yr", "Lead"];
 
-const companyLabels: Record<keyof ResearchReport["companies"], string> = {
+const companyLabels: Record<keyof ResearchReport["company_priority"], string> = {
   large_tech: "Large Tech",
   design_agencies: "Design Agencies",
   startups: "Startups",
   saas_marketing: "SaaS / Marketing",
   staffing_agencies: "Staffing Agencies",
+};
+
+const titleGroupLabels: Record<keyof ResearchReport["title_groups"], string> = {
+  standard: "Standard Titles",
+  niche: "Niche Titles",
+  senior: "Senior / Aspirational Titles",
+};
+
+const priorityBadgeClass: Record<"High" | "Medium" | "Low", string> = {
+  High: "border-rose-200 bg-rose-50 text-rose-700",
+  Medium: "border-amber-200 bg-amber-50 text-amber-700",
+  Low: "border-slate-200 bg-slate-50 text-slate-700",
 };
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -342,16 +354,44 @@ export default function HomePage() {
                 </tbody>
               </table>
             </div>
+            <p className="mt-3 text-sm text-slate-600">{report.section_notes.job_titles}</p>
+          </div>
+
+          <div>
+            <h3 className="mb-3 text-lg font-semibold text-slate-900">Title Groups</h3>
+            <div className="grid grid-cols-3 gap-4">
+              {(Object.entries(report.title_groups) as [keyof ResearchReport["title_groups"], string[]][]).map(([key, titles]) => (
+                <div key={key} className="rounded-xl border border-slate-200 p-4">
+                  <p className="mb-2 text-sm font-semibold text-slate-800">{titleGroupLabels[key]}</p>
+                  <ul className="list-disc space-y-1 pl-4 text-sm text-slate-700">
+                    {titles.map((title, index) => (
+                      <li key={`${title}-${index}`}>{title}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-slate-600">{report.section_notes.title_groups}</p>
           </div>
 
           <div>
             <h3 className="mb-3 text-lg font-semibold text-slate-900">Companies</h3>
             <div className="grid grid-cols-2 gap-4">
-              {(Object.entries(report.companies) as [keyof ResearchReport["companies"], string[]][]).map(([key, names]) => (
+              {(Object.entries(report.company_priority) as [
+                keyof ResearchReport["company_priority"],
+                ResearchReport["company_priority"][keyof ResearchReport["company_priority"]],
+              ][]).map(([key, group]) => (
                 <div key={key} className="rounded-xl border border-slate-200 p-4">
-                  <p className="mb-3 text-sm font-semibold text-slate-700">{companyLabels[key]}</p>
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-700">{companyLabels[key]}</p>
+                    <span
+                      className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${priorityBadgeClass[group.priority]}`}
+                    >
+                      Priority: {group.priority}
+                    </span>
+                  </div>
                   <div className="flex flex-wrap gap-2">
-                    {names.map((name, index) => (
+                    {[...group.remote_friendly, ...group.local].map((name, index) => (
                       <span
                         key={`${name}-${index}`}
                         className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700"
@@ -360,9 +400,20 @@ export default function HomePage() {
                       </span>
                     ))}
                   </div>
+                  <div className="mt-3 grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-700">Remote Friendly</p>
+                      <p className="mt-1 text-xs text-slate-600">{group.remote_friendly.join(", ") || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-700">Local</p>
+                      <p className="mt-1 text-xs text-slate-600">{group.local.join(", ") || "—"}</p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
+            <p className="mt-3 text-sm text-slate-600">{report.section_notes.companies}</p>
           </div>
 
           <div>
@@ -374,6 +425,9 @@ export default function HomePage() {
                   <p className="mt-1 text-sm text-slate-700">{vacancy.company}</p>
                   <p className="mt-2 inline-block rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
                     {vacancy.type}
+                  </p>
+                  <p className="mt-2 inline-block rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700">
+                    Status: {vacancy.status}
                   </p>
                   <p className="mt-2 text-xs text-slate-600">{vacancy.notes}</p>
                   <a
@@ -387,6 +441,7 @@ export default function HomePage() {
                 </article>
               ))}
             </div>
+            <p className="mt-3 text-sm text-slate-600">{report.section_notes.vacancies}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -406,6 +461,7 @@ export default function HomePage() {
                   <span className="font-semibold">Notes:</span> {report.salary.notes}
                 </p>
               </div>
+              <p className="mt-3 text-sm text-slate-600">{report.section_notes.salary}</p>
             </div>
 
             <div className="rounded-xl border border-slate-200 p-4">
@@ -422,9 +478,11 @@ export default function HomePage() {
                       {profile.url}
                     </a>
                     <p className="mt-1 text-xs">{profile.notes}</p>
+                    <p className="mt-1 text-xs font-medium text-slate-600">Borrow: {profile.profile_notes}</p>
                   </li>
                 ))}
               </ul>
+              <p className="mt-3 text-sm text-slate-600">{report.section_notes.profiles}</p>
             </div>
           </div>
 
@@ -458,6 +516,17 @@ export default function HomePage() {
                 </ul>
               </div>
             </div>
+            <p className="mt-3 text-sm text-slate-600">{report.section_notes.requirements}</p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 p-4">
+            <h3 className="text-lg font-semibold text-slate-900">Stop List</h3>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
+              {report.stop_list.map((item, index) => (
+                <li key={`${item}-${index}`}>{item}</li>
+              ))}
+            </ul>
+            <p className="mt-3 text-sm text-slate-600">{report.section_notes.stop_list}</p>
           </div>
 
           <div className="rounded-xl border border-slate-200 p-4">
@@ -473,6 +542,7 @@ export default function HomePage() {
                 <span className="font-semibold">Notes:</span> {report.strategy.notes}
               </p>
             </div>
+            <p className="mt-3 text-sm text-slate-600">{report.section_notes.strategy}</p>
           </div>
         </section>
       )}

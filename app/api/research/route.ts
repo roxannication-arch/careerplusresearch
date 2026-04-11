@@ -20,6 +20,11 @@ Do web searches for: "{{targetRole}} jobs {{location}} 2025", "{{targetRole}} sa
 
 Return this exact JSON:
 {
+  "title_groups": {
+    "standard": ["string"],
+    "niche": ["string"],
+    "senior": ["string"]
+  },
   "titles": [{"title": "string", "responsibilities": "string"}],
   "companies": {
     "large_tech": ["string"],
@@ -28,18 +33,38 @@ Return this exact JSON:
     "saas_marketing": ["string"],
     "staffing_agencies": ["string"]
   },
-  "vacancies": [{"company": "string", "title": "string", "url": "string", "type": "Remote|Hybrid|Onsite", "notes": "string"}],
+  "company_priority": {
+    "large_tech": {"priority": "High|Medium|Low", "remote_friendly": ["string"], "local": ["string"]},
+    "design_agencies": {"priority": "High|Medium|Low", "remote_friendly": ["string"], "local": ["string"]},
+    "startups": {"priority": "High|Medium|Low", "remote_friendly": ["string"], "local": ["string"]},
+    "saas_marketing": {"priority": "High|Medium|Low", "remote_friendly": ["string"], "local": ["string"]},
+    "staffing_agencies": {"priority": "High|Medium|Low", "remote_friendly": ["string"], "local": ["string"]}
+  },
+  "vacancies": [{"company": "string", "title": "string", "url": "string", "type": "Remote|Hybrid|Onsite", "status": "Active|Expired|Unverified", "notes": "string"}],
   "salary": {"min": "string", "max": "string", "average": "string", "notes": "string"},
   "requirements": {
     "core_responsibilities": ["string"],
     "core_requirements": ["string"],
     "nice_to_have": ["string"]
   },
-  "profiles": [{"url": "string", "notes": "string"}],
-  "strategy": {"connections_target": "string", "applications_target": "string", "notes": "string"}
+  "profiles": [{"url": "string", "notes": "string", "profile_notes": "string"}],
+  "stop_list": ["Company or category to avoid + reason"],
+  "strategy": {"connections_target": "string", "applications_target": "string", "notes": "string"},
+  "section_notes": {
+    "title_groups": "string",
+    "job_titles": "string",
+    "companies": "string",
+    "vacancies": "string",
+    "salary": "string",
+    "requirements": "string",
+    "profiles": "string",
+    "strategy": "string",
+    "stop_list": "string"
+  }
 }
 
-Minimums: 10 titles, 8 companies per category, 5 vacancies with real URLs, 12 responsibilities, 10 requirements, 5 nice-to-have, 5 profiles.`;
+Minimums: 10 titles, 8 companies per category, 5 vacancies with real URLs, 12 responsibilities, 10 requirements, 5 nice-to-have, 5 profiles.
+Ensure section_notes contain 1-2 strategic sentences per section.`;
 
 function buildUserPrompt(payload: ResearchPayload, resumeText: string): string {
   const prompt = USER_PROMPT_TEMPLATE.replaceAll("{{clientName}}", payload.clientName.trim())
@@ -65,6 +90,104 @@ function textFromResponse(response: Anthropic.Messages.Message): string {
     .filter((block): block is Anthropic.Messages.TextBlock => block.type === "text")
     .map((block) => block.text);
   return textParts.join("\n").trim();
+}
+
+function normalizeReport(report: ResearchReport): ResearchReport {
+  const companyKeys: Array<keyof ResearchReport["companies"]> = [
+    "large_tech",
+    "design_agencies",
+    "startups",
+    "saas_marketing",
+    "staffing_agencies",
+  ];
+
+  const rawTitleGroups = report.title_groups ?? { standard: [], niche: [], senior: [] };
+  const normalizeTitleList = (input: unknown[] | undefined): string[] =>
+    (input ?? [])
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object" && "title" in item) {
+          return String((item as { title: unknown }).title);
+        }
+        return "";
+      })
+      .filter((item) => item.trim().length > 0);
+
+  const titleGroups = {
+    standard: normalizeTitleList(rawTitleGroups.standard as unknown[]),
+    niche: normalizeTitleList(rawTitleGroups.niche as unknown[]),
+    senior: normalizeTitleList(rawTitleGroups.senior as unknown[]),
+  };
+
+  const fallbackTitles =
+    report.titles?.length > 0
+      ? report.titles
+      : titleGroups.standard.map((title) => ({
+          title,
+          responsibilities: "",
+        }));
+
+  const companies = companyKeys.reduce(
+    (acc, key) => {
+      acc[key] = report.companies?.[key] ?? [];
+      return acc;
+    },
+    {} as ResearchReport["companies"],
+  );
+
+  const rawCompanyPriority = (report as { company_priority?: Record<string, unknown> }).company_priority ?? {};
+  const companyPriority = companyKeys.reduce(
+    (acc, key) => {
+      const source = (rawCompanyPriority[key] ?? {}) as {
+        priority?: ResearchReport["company_priority"][typeof key]["priority"];
+        remote_friendly?: string[];
+        local?: string[];
+        subcategories?: {
+          remote_friendly?: string[];
+          local?: string[];
+        };
+      };
+      acc[key] = {
+        priority: source.priority ?? "Medium",
+        remote_friendly: source.remote_friendly ?? source.subcategories?.remote_friendly ?? [],
+        local: source.local ?? source.subcategories?.local ?? [],
+      };
+      return acc;
+    },
+    {} as ResearchReport["company_priority"],
+  );
+
+  return {
+    ...report,
+    companies,
+    company_priority: companyPriority,
+    titles: fallbackTitles,
+    title_groups: {
+      standard: titleGroups.standard ?? fallbackTitles,
+      niche: titleGroups.niche ?? [],
+      senior: titleGroups.senior ?? [],
+    },
+    vacancies: (report.vacancies ?? []).map((vacancy) => ({
+      ...vacancy,
+      status: vacancy.status ?? "Unverified",
+    })),
+    profiles: (report.profiles ?? []).map((profile) => ({
+      ...profile,
+      profile_notes: profile.profile_notes ?? profile.notes,
+    })),
+    stop_list: report.stop_list ?? [],
+    section_notes: {
+      title_groups: report.section_notes?.title_groups ?? "",
+      job_titles: report.section_notes?.job_titles ?? "",
+      companies: report.section_notes?.companies ?? "",
+      vacancies: report.section_notes?.vacancies ?? "",
+      salary: report.section_notes?.salary ?? "",
+      requirements: report.section_notes?.requirements ?? "",
+      profiles: report.section_notes?.profiles ?? "",
+      strategy: report.section_notes?.strategy ?? "",
+      stop_list: report.section_notes?.stop_list ?? "",
+    },
+  };
 }
 
 function tryParseJSONFromModelText(rawText: string): ResearchReport | null {
@@ -209,7 +332,7 @@ export async function POST(request: Request) {
     const rawText = textFromResponse(response);
     const parsed = tryParseJSONFromModelText(rawText);
     if (parsed) {
-      return NextResponse.json({ ok: true, report: parsed, rawText });
+      return NextResponse.json({ ok: true, report: normalizeReport(parsed), rawText });
     }
 
     return NextResponse.json({
