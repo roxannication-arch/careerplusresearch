@@ -1,4 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
+import mammoth from "mammoth";
+import pdfParse from "pdf-parse";
 import { NextResponse } from "next/server";
 import type { ResearchPayload, ResearchReport } from "@/lib/types";
 
@@ -39,13 +41,23 @@ Return this exact JSON:
 
 Minimums: 10 titles, 8 companies per category, 5 vacancies with real URLs, 12 responsibilities, 10 requirements, 5 nice-to-have, 5 profiles.`;
 
-function buildUserPrompt(payload: ResearchPayload): string {
-  return USER_PROMPT_TEMPLATE.replaceAll("{{clientName}}", payload.clientName.trim())
+function buildUserPrompt(payload: ResearchPayload, resumeText: string): string {
+  const prompt = USER_PROMPT_TEMPLATE.replaceAll("{{clientName}}", payload.clientName.trim())
     .replaceAll("{{specialty}}", payload.specialty.trim())
     .replaceAll("{{targetRole}}", payload.targetRole.trim())
     .replaceAll("{{location}}", payload.location.trim())
     .replaceAll("{{experience}}", payload.experience)
     .replaceAll("{{notes}}", payload.notes?.trim() || "None");
+
+  if (!resumeText.trim()) {
+    return prompt;
+  }
+
+  return `${prompt}
+
+RESUME CONTEXT (optional):
+Use this resume to tailor the output to the candidate's actual background. Do not invent resume facts beyond this content.
+${resumeText}`;
 }
 
 function textFromResponse(response: Anthropic.Messages.Message): string {
@@ -64,6 +76,62 @@ function validatePayload(payload: Partial<ResearchPayload>): string | null {
   return null;
 }
 
+function normalizeResumeText(raw: string): string {
+  return raw.replace(/\s+/g, " ").trim().slice(0, 12000);
+}
+
+async function extractResumeText(file: File): Promise<string> {
+  const ext = file.name.toLowerCase().split(".").pop();
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  if (ext === "txt") {
+    return normalizeResumeText(buffer.toString("utf-8"));
+  }
+
+  if (ext === "docx") {
+    const result = await mammoth.extractRawText({ buffer });
+    return normalizeResumeText(result.value);
+  }
+
+  if (ext === "pdf") {
+    const result = await pdfParse(buffer);
+    return normalizeResumeText(result.text);
+  }
+
+  throw new Error("Unsupported resume format. Use PDF, DOCX, or TXT.");
+}
+
+async function parsePayloadFromRequest(request: Request): Promise<{ payload: ResearchPayload; resumeText: string }> {
+  const contentType = request.headers.get("content-type") ?? "";
+
+  if (contentType.includes("multipart/form-data")) {
+    const formData = await request.formData();
+    const payload: ResearchPayload = {
+      clientName: String(formData.get("clientName") ?? ""),
+      specialty: String(formData.get("specialty") ?? ""),
+      targetRole: String(formData.get("targetRole") ?? ""),
+      location: String(formData.get("location") ?? "USA"),
+      experience: String(formData.get("experience") ?? "") as ResearchPayload["experience"],
+      notes: String(formData.get("notes") ?? ""),
+    };
+
+    const file = formData.get("resumeFile");
+    let resumeText = "";
+    if (file instanceof File && file.size > 0) {
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error("Resume file is too large. Max size is 5MB.");
+      }
+      resumeText = await extractResumeText(file);
+    }
+
+    return { payload, resumeText };
+  }
+
+  const payload = (await request.json()) as ResearchPayload;
+  return { payload, resumeText: "" };
+}
+
 export async function POST(request: Request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -74,10 +142,14 @@ export async function POST(request: Request) {
   }
 
   let payload: ResearchPayload;
+  let resumeText = "";
   try {
-    payload = (await request.json()) as ResearchPayload;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    const parsed = await parsePayloadFromRequest(request);
+    payload = parsed.payload;
+    resumeText = parsed.resumeText;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Invalid request body.";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 
   const payloadError = validatePayload(payload);
@@ -92,7 +164,7 @@ export async function POST(request: Request) {
       max_tokens: 8000,
       system: SYSTEM_PROMPT,
       tools: [{ type: "web_search_20250305", name: "web_search" }],
-      messages: [{ role: "user", content: buildUserPrompt(payload) }],
+      messages: [{ role: "user", content: buildUserPrompt(payload, resumeText) }],
     });
 
     const rawText = textFromResponse(response);

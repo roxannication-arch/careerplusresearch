@@ -11,6 +11,7 @@ export type ResearchPayload = {
   location: string;
   experience: ExperienceLevel;
   notes?: string;
+  resumeText?: string;
 };
 
 export type ResearchReport = {

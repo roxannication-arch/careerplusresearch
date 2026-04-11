@@ -49,6 +49,7 @@ function sanitizeFilename(input: string) {
 
 export default function HomePage() {
   const [formData, setFormData] = useState<ResearchPayload>(initialForm);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [report, setReport] = useState<ResearchReport | null>(null);
   const [rawResponse, setRawResponse] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -80,12 +81,20 @@ export default function HomePage() {
     setRawResponse("");
 
     try {
+      const body = new FormData();
+      body.append("clientName", formData.clientName);
+      body.append("specialty", formData.specialty);
+      body.append("targetRole", formData.targetRole);
+      body.append("location", formData.location);
+      body.append("experience", formData.experience);
+      body.append("notes", formData.notes ?? "");
+      if (resumeFile) {
+        body.append("resumeFile", resumeFile);
+      }
+
       const response = await fetch("/api/research", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+        body,
       });
 
       const data = (await response.json()) as ApiSuccess | ApiError;
@@ -106,6 +115,7 @@ export default function HomePage() {
 
   const onReset = () => {
     setFormData(initialForm);
+    setResumeFile(null);
     setReport(null);
     setRawResponse("");
     setError("");
@@ -217,6 +227,20 @@ export default function HomePage() {
                 Reset
               </button>
             </div>
+          </div>
+
+          <div>
+            <FieldLabel>Current resume (optional: PDF, DOCX, TXT)</FieldLabel>
+            <input
+              type="file"
+              accept=".pdf,.docx,.txt,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                setResumeFile(file);
+              }}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none ring-indigo-200 transition file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-200 focus:border-indigo-500 focus:ring-2"
+            />
+            {resumeFile && <p className="mt-2 text-xs text-slate-600">Attached: {resumeFile.name}</p>}
           </div>
 
           <div>
