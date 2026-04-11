@@ -66,6 +66,36 @@ function textFromResponse(response: Anthropic.Messages.Message): string {
   return textParts.join("\n").trim();
 }
 
+function tryParseJSONFromModelText(rawText: string): ResearchReport | null {
+  try {
+    return JSON.parse(rawText) as ResearchReport;
+  } catch {
+    // fall through to extraction strategies below
+  }
+
+  const fencedMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fencedMatch?.[1]) {
+    try {
+      return JSON.parse(fencedMatch[1]) as ResearchReport;
+    } catch {
+      // continue to brace-slice fallback
+    }
+  }
+
+  const firstBrace = rawText.indexOf("{");
+  const lastBrace = rawText.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    const candidate = rawText.slice(firstBrace, lastBrace + 1);
+    try {
+      return JSON.parse(candidate) as ResearchReport;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
 function validatePayload(payload: Partial<ResearchPayload>): string | null {
   if (!payload.clientName?.trim()) return "Client name is required.";
   if (!payload.specialty?.trim()) return "Client specialty / skills is required.";
@@ -173,16 +203,16 @@ export async function POST(request: Request) {
     });
 
     const rawText = textFromResponse(response);
-    try {
-      const parsed = JSON.parse(rawText) as ResearchReport;
+    const parsed = tryParseJSONFromModelText(rawText);
+    if (parsed) {
       return NextResponse.json({ ok: true, report: parsed, rawText });
-    } catch {
-      return NextResponse.json({
-        ok: false,
-        error: "Model response was not valid JSON. Use the raw response below.",
-        rawText,
-      });
     }
+
+    return NextResponse.json({
+      ok: false,
+      error: "Model response was not valid JSON. Use the raw response below.",
+      rawText,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown server error.";
     return NextResponse.json({ error: message }, { status: 500 });
