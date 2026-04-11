@@ -14,11 +14,12 @@ export default function Icon() {
         style={{
           width: "100%",
           height: "100%",
+          position: "relative",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           background:
-            "radial-gradient(circle at 24% 18%, #3949ab 0%, rgba(57,73,171,0.2) 30%, transparent 42%), linear-gradient(145deg, #080c1b 0%, #131f3a 45%, #2a2468 100%)",
+            "radial-gradient(circle at 20% 12%, rgba(56, 189, 248, 0.28) 0%, rgba(56, 189, 248, 0) 34%), radial-gradient(circle at 88% 8%, rgba(244, 114, 182, 0.3) 0%, rgba(244, 114, 182, 0) 36%), linear-gradient(150deg, #080d1f 0%, #101a37 44%, #1c1f55 100%)",
         }}
       >
         <div
@@ -26,41 +27,89 @@ export default function Icon() {
             width: "84%",
             height: "84%",
             borderRadius: "30%",
+            position: "relative",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            flexDirection: "column",
-            border: "10px solid #efd79a",
+            border: "10px solid #f5d084",
             boxShadow:
-              "0 0 0 6px rgba(255,255,255,0.08), inset 0 0 80px rgba(239,215,154,0.22), 0 22px 60px rgba(7,10,25,0.55)",
+              "0 0 0 6px rgba(255,255,255,0.08), inset 0 0 84px rgba(245, 208, 132, 0.2), 0 26px 62px rgba(3, 7, 20, 0.62)",
             background:
-              "radial-gradient(circle at 30% 24%, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0) 30%), linear-gradient(160deg, #0f172a 0%, #1e293b 55%, #312e81 100%)",
+              "radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.23) 0%, rgba(255, 255, 255, 0) 33%), linear-gradient(160deg, #0b132a 0%, #111e3d 52%, #222f6c 100%)",
           }}
         >
           <div
             style={{
-              fontSize: 198,
-              fontWeight: 800,
-              letterSpacing: "0.08em",
-              color: "#f8e8b9",
-              lineHeight: 1,
-              textShadow: "0 8px 20px rgba(0,0,0,0.45)",
+              position: "absolute",
+              width: 320,
+              height: 320,
+              borderRadius: "50%",
+              border: "7px solid rgba(255, 221, 150, 0.7)",
+              borderLeftColor: "rgba(255, 221, 150, 0.12)",
+              borderBottomColor: "rgba(255, 221, 150, 0.12)",
+              transform: "rotate(-18deg)",
             }}
-          >
-            CP
-          </div>
+          />
           <div
             style={{
-              marginTop: 10,
-              fontSize: 38,
-              fontWeight: 600,
-              letterSpacing: "0.24em",
-              color: "#dbe6ff",
-              opacity: 0.92,
+              position: "absolute",
+              width: 258,
+              height: 258,
+              borderRadius: "50%",
+              border: "6px solid rgba(129, 212, 250, 0.52)",
+              borderRightColor: "rgba(129, 212, 250, 0.08)",
+              borderTopColor: "rgba(129, 212, 250, 0.08)",
+              transform: "rotate(24deg)",
             }}
-          >
-            RESEARCH
-          </div>
+          />
+          <div
+            style={{
+              width: 176,
+              height: 176,
+              borderRadius: "28%",
+              transform: "rotate(45deg)",
+              border: "4px solid rgba(255, 227, 160, 0.9)",
+              background:
+                "linear-gradient(150deg, rgba(255, 241, 198, 0.96) 0%, rgba(250, 204, 120, 0.96) 34%, rgba(129, 212, 250, 0.86) 68%, rgba(196, 181, 253, 0.88) 100%)",
+              boxShadow:
+                "0 20px 40px rgba(3, 8, 24, 0.46), inset 0 0 28px rgba(255, 255, 255, 0.36)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              width: 62,
+              height: 62,
+              borderRadius: "50%",
+              background: "radial-gradient(circle, rgba(255,255,255,0.98) 0%, rgba(186,230,253,0.88) 58%, rgba(186,230,253,0) 100%)",
+              top: 124,
+              left: 130,
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              width: 20,
+              height: 20,
+              borderRadius: "50%",
+              background: "rgba(255, 255, 255, 0.92)",
+              top: 104,
+              right: 130,
+              boxShadow: "0 0 14px rgba(255, 255, 255, 0.84)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              width: 16,
+              height: 16,
+              borderRadius: "50%",
+              background: "rgba(255, 255, 255, 0.84)",
+              bottom: 126,
+              left: 150,
+              boxShadow: "0 0 10px rgba(255, 255, 255, 0.74)",
+            }}
+          />
         </div>
       </div>
     ),

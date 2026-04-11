@@ -17,31 +17,59 @@ export default function AppleIcon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background:
-            "radial-gradient(circle at 24% 18%, #3f4cb8 0%, rgba(63,76,184,0.2) 30%, transparent 42%), linear-gradient(145deg, #0a0e1f 0%, #14213f 45%, #342b7a 100%)",
+          background: "linear-gradient(160deg, #04060f 0%, #090f20 48%, #110b26 100%)",
         }}
       >
         <div
           style={{
-            width: "82%",
-            height: "82%",
-            borderRadius: "30%",
+            width: "86%",
+            height: "86%",
+            borderRadius: "32%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            border: "4px solid #efd79a",
+            overflow: "hidden",
             boxShadow:
-              "0 0 0 3px rgba(255,255,255,0.08), inset 0 0 24px rgba(239,215,154,0.22), 0 10px 24px rgba(7,10,25,0.55)",
-            background:
-              "radial-gradient(circle at 30% 24%, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0) 30%), linear-gradient(160deg, #0f172a 0%, #1e293b 55%, #312e81 100%)",
-            color: "#f8e8b9",
-            fontSize: 72,
-            fontWeight: 800,
-            letterSpacing: "0.08em",
-            textShadow: "0 4px 10px rgba(0,0,0,0.45)",
+              "inset 0 0 0 2px rgba(255,255,255,0.12), inset 0 0 32px rgba(255,255,255,0.06), 0 18px 30px rgba(0,0,0,0.55)",
+            background: "linear-gradient(150deg, #171c34 0%, #0f1326 45%, #1a1138 100%)",
+            position: "relative",
           }}
         >
-          CP
+          <div
+            style={{
+              position: "absolute",
+              width: "112%",
+              height: "112%",
+              borderRadius: "34%",
+              background:
+                "radial-gradient(circle at 20% 16%, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 35%), radial-gradient(circle at 78% 86%, rgba(99,102,241,0.38) 0%, rgba(99,102,241,0) 45%)",
+            }}
+          />
+          <div
+            style={{
+              width: "58%",
+              height: "58%",
+              borderRadius: "24%",
+              background:
+                "linear-gradient(145deg, #f8d782 0%, #f4bb48 44%, #a86d10 100%)",
+              transform: "rotate(45deg)",
+              boxShadow:
+                "0 10px 20px rgba(0,0,0,0.38), inset 0 0 0 1px rgba(255,255,255,0.34), inset 10px -12px 18px rgba(120,72,0,0.26)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              width: "30%",
+              height: "30%",
+              borderRadius: "38%",
+              background: "rgba(255,255,255,0.3)",
+              filter: "blur(6px)",
+              top: "20%",
+              left: "24%",
+              transform: "rotate(45deg)",
+            }}
+          />
         </div>
       </div>
     ),
