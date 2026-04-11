@@ -124,8 +124,8 @@ async function parsePayloadFromRequest(request: Request): Promise<{ payload: Res
     const file = formData.get("resumeFile");
     let resumeText = "";
     if (file instanceof File && file.size > 0) {
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error("Resume file is too large. Max size is 5MB.");
+      if (file.size > 4 * 1024 * 1024) {
+        throw new Error("Resume file is too large. Max size is 4MB.");
       }
       resumeText = await extractResumeText(file);
     }

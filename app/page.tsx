@@ -30,6 +30,8 @@ const initialForm: ResearchPayload = {
   notes: "",
 };
 
+const MAX_RESUME_BYTES = 4 * 1024 * 1024;
+
 const experienceOptions: ExperienceLevel[] = ["Junior 0-2yr", "Middle 2-5yr", "Senior 5+yr", "Lead"];
 
 const companyLabels: Record<keyof ResearchReport["companies"], string> = {
@@ -80,6 +82,12 @@ export default function HomePage() {
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (resumeFile && resumeFile.size > MAX_RESUME_BYTES) {
+      setError("Resume file is too large. Please upload a file up to 4MB.");
+      setRawResponse("");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
     setReport(null);
@@ -248,6 +256,14 @@ export default function HomePage() {
               accept=".pdf,.docx,.txt,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               onChange={(event) => {
                 const file = event.target.files?.[0] ?? null;
+                if (file && file.size > MAX_RESUME_BYTES) {
+                  setResumeFile(null);
+                  setError("Resume file is too large. Please upload a file up to 4MB.");
+                  setRawResponse("");
+                  event.currentTarget.value = "";
+                  return;
+                }
+                setError("");
                 setResumeFile(file);
               }}
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none ring-indigo-200 transition file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-200 focus:border-indigo-500 focus:ring-2"
