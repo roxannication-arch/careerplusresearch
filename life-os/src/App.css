@@ -1,12 +1,16 @@
+:root {
+  color-scheme: dark;
+}
+
 .app-shell {
-  --accent: #1d9e75;
+  --accent: #00e5a0;
   position: relative;
   min-height: 100dvh;
   max-width: 560px;
   margin: 0 auto;
-  background: #ffffff;
-  color: #0f1720;
-  padding: 16px 16px 110px;
+  background: #0a0a0a;
+  color: #ffffff;
+  padding: 16px 16px 112px;
   box-sizing: border-box;
 }
 
@@ -20,7 +24,8 @@
 .focus-card {
   margin-top: 8px;
   min-height: calc(100dvh - 180px);
-  border: 1px solid #d9ece6;
+  border: 1px solid #1f1f1f;
+  background: #141414;
   border-radius: 24px;
   padding: 20px;
   display: flex;
@@ -38,15 +43,15 @@
   align-self: flex-start;
   border-radius: 999px;
   padding: 8px 12px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1;
-  color: #125741;
+  color: #00e5a0;
 }
 
 .big-line {
   margin: 0;
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.3;
   letter-spacing: -0.01em;
@@ -66,9 +71,17 @@
 .timer-value {
   margin: 0;
   text-align: center;
-  font-size: 56px;
+  font-size: 64px;
   font-weight: 700;
-  color: #0f1720;
+  color: #00e5a0;
+}
+
+.timer-value.is-amber {
+  color: #f59e0b;
+}
+
+.timer-value.is-red {
+  color: #ef4444;
 }
 
 .timer-actions {
@@ -88,9 +101,9 @@ textarea,
 .secondary-btn,
 .ghost-btn,
 .tiny-link {
-  border: none;
+  border: 1px solid transparent;
   border-radius: 14px;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -98,7 +111,7 @@ textarea,
 .primary-btn {
   width: 100%;
   background: var(--accent);
-  color: #ffffff;
+  color: #0a0a0a;
   padding: 12px 16px;
 }
 
@@ -110,8 +123,9 @@ textarea,
 .secondary-btn {
   width: 100%;
   padding: 12px 16px;
-  background: #edf8f4;
-  color: #125741;
+  background: #141414;
+  color: #ffffff;
+  border-color: #1f1f1f;
 }
 
 .ask-btn {
@@ -120,21 +134,21 @@ textarea,
 
 .tiny-link {
   background: transparent;
-  color: #6b7280;
+  color: #888;
   padding: 12px 4px;
-  font-size: 14px;
+  font-size: 16px;
   text-align: left;
 }
 
 .section-title {
   margin: 2px 0 10px;
-  font-size: 19px;
+  font-size: 30px;
   font-weight: 700;
 }
 
 .metric {
   margin: 0;
-  font-size: 40px;
+  font-size: 42px;
   line-height: 1.2;
   font-weight: 700;
 }
@@ -148,8 +162,8 @@ textarea,
 
 .muted {
   margin: 4px 0 0;
-  color: #6b7280;
-  font-size: 15px;
+  color: #888;
+  font-size: 16px;
 }
 
 .progress {
@@ -157,7 +171,7 @@ textarea,
   height: 14px;
   width: 100%;
   border-radius: 999px;
-  background: #e8f4ef;
+  background: #1f1f1f;
   overflow: hidden;
 }
 
@@ -170,7 +184,8 @@ textarea,
 
 .lead-card {
   margin-top: 16px;
-  border: 1px solid #d9ece6;
+  border: 1px solid #1f1f1f;
+  background: #141414;
   border-radius: 20px;
   padding: 18px;
   display: flex;
@@ -179,8 +194,8 @@ textarea,
 }
 
 .lead-card.stale {
-  border-color: #f4bf5f;
-  background: #fff8eb;
+  border-color: #f59e0b;
+  background: #1e1710;
 }
 
 .lead-card.empty {
@@ -190,14 +205,14 @@ textarea,
 
 .lead-name {
   margin: 0;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
 }
 
 .status-line {
   margin: 2px 0 4px;
-  font-size: 15px;
-  color: #475569;
+  font-size: 16px;
+  color: #888;
   text-transform: lowercase;
 }
 
@@ -210,7 +225,8 @@ textarea,
 }
 
 .payment-item {
-  border: 1px solid #d9ece6;
+  border: 1px solid #1f1f1f;
+  background: #141414;
   border-radius: 16px;
   padding: 12px;
   display: flex;
@@ -221,7 +237,7 @@ textarea,
 
 .payment-amount {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
 }
 
@@ -245,7 +261,8 @@ textarea,
   align-items: center;
   min-height: 48px;
   padding: 8px 10px;
-  border: 1px solid #e6efe9;
+  border: 1px solid #1f1f1f;
+  background: #141414;
   border-radius: 14px;
 }
 
@@ -255,7 +272,7 @@ textarea,
   accent-color: var(--accent);
 }
 
-.goal-projects {
+.goals-list {
   margin-top: 16px;
   display: flex;
   flex-direction: column;
@@ -263,23 +280,23 @@ textarea,
   padding-bottom: 104px;
 }
 
-.goal-projects-header {
+.goals-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
 }
 
-.goal-projects-header h3 {
+.goals-header h3 {
   margin: 0;
-  font-size: 19px;
+  font-size: 22px;
 }
 
 .inline-btn {
   width: auto;
   padding-inline: 12px;
   min-height: 42px;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .back-btn {
@@ -287,12 +304,13 @@ textarea,
   align-self: flex-start;
   padding-inline: 12px;
   min-height: 42px;
-  font-size: 15px;
+  font-size: 16px;
   margin-top: 4px;
 }
 
-.goal-project-card {
-  border: 1px solid #d9ece6;
+.goal-card {
+  border: 1px solid #1f1f1f;
+  background: #141414;
   border-radius: 16px;
   padding: 12px;
   display: flex;
@@ -300,22 +318,67 @@ textarea,
   gap: 10px;
 }
 
-.goal-project-card.empty {
+.goal-card.empty {
   gap: 6px;
 }
 
-.project-items {
+.goal-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.goal-order-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.goal-order-actions .ghost-btn {
+  min-height: 40px;
+  min-width: 40px;
+  border: 1px solid #1f1f1f;
+  background: #0a0a0a;
+  color: #fff;
+}
+
+.danger-btn {
+  border-color: #4b1a1a;
+  color: #ff9b9b;
+}
+
+.queue-wrap {
+  border: 1px solid #1f1f1f;
+  border-radius: 16px;
+  background: #101010;
+  padding: 12px;
+}
+
+.queue-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
+.task-row.collapsed {
+  flex-direction: row;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.drag-mark {
+  color: #888;
+  font-size: 18px;
+  line-height: 1.3;
+  padding-top: 2px;
+}
+
 .question-alert {
   margin-top: 14px;
-  border: 1px solid #f4bf5f;
+  border: 1px solid #4a3717;
   border-radius: 14px;
   padding: 12px;
-  background: #fff8eb;
+  background: #1b140c;
 }
 
 .question-alert p {
@@ -325,7 +388,9 @@ textarea,
 
 .question-alert textarea {
   width: 100%;
-  border: 1px solid #e7d3aa;
+  border: 1px solid #4a3717;
+  background: #101010;
+  color: #fff;
   border-radius: 12px;
   padding: 12px;
   font-size: 16px;
@@ -342,11 +407,10 @@ textarea,
   border-radius: 999px;
   border: none;
   background: var(--accent);
-  color: #fff;
+  color: #0a0a0a;
   font-size: 34px;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(29, 158, 117, 0.24);
 }
 
 .bottom-nav {
@@ -355,8 +419,8 @@ textarea,
   transform: translateX(-50%);
   bottom: 0;
   width: min(560px, 100vw);
-  background: #fff;
-  border-top: 1px solid #e6efe9;
+  background: #0f0f0f;
+  border-top: 1px solid #1f1f1f;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   padding: 8px;
@@ -368,16 +432,16 @@ textarea,
   border: none;
   border-radius: 12px;
   background: transparent;
-  color: #64748b;
-  font-size: 14px;
+  color: #888;
+  font-size: 16px;
   font-weight: 600;
   min-height: 50px;
   cursor: pointer;
 }
 
 .bottom-nav button.active {
-  background: #edf8f4;
-  color: #0f1720;
+  background: #141414;
+  color: #00e5a0;
 }
 
 .sheet-wrap {
@@ -397,7 +461,7 @@ textarea,
   position: absolute;
   inset: 0;
   border: none;
-  background: rgba(2, 6, 23, 0.38);
+  background: rgba(0, 0, 0, 0.65);
   padding: 0;
   margin: 0;
 }
@@ -409,7 +473,8 @@ textarea,
   bottom: 0;
   max-width: 560px;
   margin: 0 auto;
-  background: #fff;
+  background: #101010;
+  border: 1px solid #1f1f1f;
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
   padding: 16px;
@@ -433,14 +498,14 @@ textarea,
 
 .sheet-header h3 {
   margin: 0;
-  font-size: 19px;
+  font-size: 24px;
 }
 
 .ghost-btn {
   background: transparent;
-  color: #64748b;
+  color: #888;
   padding: 10px 8px;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .sheet-body {
@@ -459,7 +524,9 @@ textarea,
 .stack input,
 .stack textarea {
   width: 100%;
-  border: 1px solid #d9ece6;
+  border: 1px solid #1f1f1f;
+  background: #141414;
+  color: #fff;
   border-radius: 12px;
   padding: 12px;
   font-size: 16px;
@@ -471,9 +538,9 @@ textarea,
 }
 
 .claude-reply {
-  border: 1px solid #d9ece6;
+  border: 1px solid #1f1f1f;
   border-radius: 12px;
-  background: #f8fcfa;
+  background: #141414;
   padding: 12px;
 }
 
@@ -483,7 +550,7 @@ textarea,
 
 .small-step {
   font-weight: 600;
-  color: #125741;
+  color: #00e5a0;
 }
 
 .tasks-sheet {
@@ -493,7 +560,8 @@ textarea,
 }
 
 .task-row {
-  border: 1px solid #d9ece6;
+  border: 1px solid #1f1f1f;
+  background: #141414;
   border-radius: 12px;
   padding: 10px;
   display: flex;
@@ -510,13 +578,13 @@ textarea,
 }
 
 .file-label {
-  border: 1px dashed #9bcfbe;
+  border: 1px dashed #1f1f1f;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: #125741;
+  color: #00e5a0;
   position: relative;
   overflow: hidden;
 }
@@ -532,12 +600,62 @@ textarea,
   pointer-events: none;
   position: fixed;
   inset: 0;
-  background: rgba(29, 158, 117, 0);
+  background: rgba(0, 229, 160, 0);
   transition: background 0.35s ease;
 }
 
 .reward-overlay.show {
-  background: rgba(29, 158, 117, 0.28);
+  background: rgba(0, 229, 160, 0.2);
+}
+
+.timer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 50;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.timer-overlay.show {
+  display: flex;
+}
+
+.timer-overlay-card {
+  width: min(460px, 100%);
+  border: 1px solid #1f1f1f;
+  background: #141414;
+  border-radius: 20px;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.overlay-time {
+  margin: 0;
+  font-size: 82px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.overlay-time.is-green {
+  color: #00e5a0;
+}
+
+.overlay-time.is-amber {
+  color: #f59e0b;
+}
+
+.overlay-time.is-red {
+  color: #ef4444;
+}
+
+.overlay-done-btn {
+  max-width: 320px;
 }
 
 @media (min-width: 768px) {

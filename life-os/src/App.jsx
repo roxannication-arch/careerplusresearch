@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
-const ACCENT = '#1D9E75'
+const ACCENT = '#00E5A0'
 const MONTHLY_CLIENT_GOAL = 4
 const MONTHLY_REVENUE_GOAL = 15000
 const POMODORO_MINUTES = 25
@@ -15,11 +15,11 @@ const DEFAULT_L1_ITEMS = [
   'Подать (октябрь 2026)',
 ]
 const TAG_COLORS = {
-  L1: '#c7f5e4',
-  деньги: '#dbf8ef',
-  клиент: '#d5f4ea',
-  контент: '#ccefe3',
-  цель: '#d6f3ea',
+  L1: '#193429',
+  деньги: '#173328',
+  клиент: '#173228',
+  контент: '#1a352a',
+  цель: '#18342a',
 }
 
 const localKey = {
@@ -157,7 +157,7 @@ function App() {
   const [l1Items, setL1Items] = useState([])
   const [customGoals, setCustomGoals] = useState([])
   const [activeGoalId, setActiveGoalId] = useState('')
-  const [dailyPlan, setDailyPlan] = useState({ date: '', tasks: [], currentIndex: 0 })
+  const [dailyPlan, setDailyPlan] = useState({ date: '', tasks: [] })
   const [timerState, setTimerState] = useState({
     running: false,
     expired: false,
@@ -165,6 +165,7 @@ function App() {
     taskId: null,
     secondsLeft: 25 * 60,
   })
+  const [dragTaskIndex, setDragTaskIndex] = useState(null)
   const [loadingTasks, setLoadingTasks] = useState(false)
   const [showTasksSheet, setShowTasksSheet] = useState(false)
   const [skipSheetOpen, setSkipSheetOpen] = useState(false)
@@ -185,10 +186,12 @@ function App() {
   const [loaded, setLoaded] = useState(false)
 
   const touchStartX = useRef(0)
-  const currentTask = dailyPlan.tasks[dailyPlan.currentIndex] || null
-  const remainingTasks = Math.max(0, dailyPlan.tasks.length - dailyPlan.currentIndex - 1)
+  const currentTask = dailyPlan.tasks[0] || null
+  const queueTasks = dailyPlan.tasks.slice(1)
   const l1DaysIdle = daysBetween(l1LastActivity)
   const activeGoal = customGoals.find((goal) => goal.id === activeGoalId) || null
+  const timerOverlayVisible = timerState.running || timerState.expired
+  const isTimerAmber = timerState.secondsLeft > 0 && timerState.secondsLeft <= 5 * 60
 
   const l1Deadline = new Date('2026-10-01T00:00:00')
   const countdownDays = Math.max(0, Math.ceil((l1Deadline.getTime() - Date.now()) / 86400000))
@@ -240,7 +243,7 @@ function App() {
         : DEFAULT_L1_ITEMS.map((title) => ({ id: uid(), title, done: false, createdAt: new Date().toISOString() })),
     )
     setCustomGoals(Array.isArray(savedCustomGoals) ? savedCustomGoals : savedLegacyProjects || [])
-    setDailyPlan(savedPlan || { date: '', tasks: [], currentIndex: 0 })
+    setDailyPlan(savedPlan || { date: '', tasks: [] })
     setTimerState(
       savedTimer || {
         running: false,
@@ -332,16 +335,12 @@ function App() {
           }
         }
       } catch {
-        // Fallback is intentional when Claude is unavailable.
+        // fallback when Claude unavailable
       } finally {
         setLoadingTasks(false)
       }
 
-      setDailyPlan({
-        date: dayKey(),
-        tasks: tasks.length ? tasks : fallbackTasks(snapshot),
-        currentIndex: 0,
-      })
+      setDailyPlan({ date: dayKey(), tasks: tasks.length ? tasks : fallbackTasks(snapshot) })
     }
 
     generate()
@@ -349,7 +348,6 @@ function App() {
 
   useEffect(() => {
     if (!timerState.running || !timerState.endAt) return undefined
-
     const timer = window.setInterval(() => {
       const sec = Math.max(0, Math.ceil((timerState.endAt - Date.now()) / 1000))
       if (sec <= 0) {
@@ -362,9 +360,17 @@ function App() {
         setTimerState((prev) => ({ ...prev, secondsLeft: sec }))
       }
     }, 1000)
-
     return () => window.clearInterval(timer)
   }, [timerState.endAt, timerState.running])
+
+  useEffect(() => {
+    if (!timerOverlayVisible) return undefined
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [timerOverlayVisible])
 
   const triggerReward = () => {
     setRewardPulse(true)
@@ -390,7 +396,8 @@ function App() {
     setTimerState({ running: false, expired: false, endAt: null, taskId: null, secondsLeft: 25 * 60 })
     setDailyPlan((prev) => ({
       ...prev,
-      currentIndex: Math.min(prev.tasks.length, prev.currentIndex + 1),
+      tasks: prev.tasks.slice(1),
+      
     }))
   }
 
@@ -426,7 +433,7 @@ function App() {
     if (!skipStep || !currentTask) return
     setDailyPlan((prev) => ({
       ...prev,
-      tasks: prev.tasks.map((task, index) => (index === prev.currentIndex ? { ...task, action: skipStep } : task)),
+      tasks: prev.tasks.map((task, index) => (index === 0 ? { ...task, action: skipStep } : task)),
     }))
     setSkipSheetOpen(false)
   }
@@ -434,16 +441,35 @@ function App() {
   const skipTask = () => {
     setTimerState({ running: false, expired: false, endAt: null, taskId: null, secondsLeft: 25 * 60 })
     setSkipSheetOpen(false)
-    setDailyPlan((prev) => ({
-      ...prev,
-      currentIndex: Math.min(prev.tasks.length, prev.currentIndex + 1),
-    }))
+    setDailyPlan((prev) => {
+      if (prev.tasks.length <= 1) return prev
+      const [first, ...rest] = prev.tasks
+      return { ...prev, tasks: [...rest, first] }
+    })
   }
 
   const formatSeconds = (sec) => {
     const minutes = Math.floor(sec / 60)
     const seconds = sec % 60
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  }
+
+  const moveTask = (fromIndex, toIndex) => {
+    setDailyPlan((prev) => {
+      if (
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= prev.tasks.length ||
+        toIndex >= prev.tasks.length ||
+        fromIndex === toIndex
+      ) {
+        return prev
+      }
+      const nextTasks = [...prev.tasks]
+      const [task] = nextTasks.splice(fromIndex, 1)
+      nextTasks.splice(toIndex, 0, task)
+      return { ...prev, tasks: nextTasks }
+    })
   }
 
   const addLead = (event) => {
@@ -596,7 +622,6 @@ function App() {
     const form = new FormData(event.currentTarget)
     const title = String(form.get('title') || '').trim()
     if (!title) return
-
     setL1Items((prev) => [...prev, { id: uid(), title, done: false, createdAt: new Date().toISOString() }])
     setL1LastActivity(dayKey())
     triggerReward()
@@ -618,10 +643,28 @@ function App() {
     triggerReward()
   }
 
+  const moveGoal = (index, direction) => {
+    setCustomGoals((prev) => {
+      const target = index + direction
+      if (target < 0 || target >= prev.length) return prev
+      const next = [...prev]
+      const [goal] = next.splice(index, 1)
+      next.splice(target, 0, goal)
+      return next
+    })
+  }
+
+  const removeGoal = (goalId) => {
+    setCustomGoals((prev) => prev.filter((goal) => goal.id !== goalId))
+    if (activeGoalId === goalId) setActiveGoalId('')
+    triggerReward()
+  }
+
   const addCustomGoal = (event) => {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     const title = String(form.get('title') || '').trim()
+    const tag = String(form.get('tag') || '').trim()
     const firstStep = String(form.get('firstStep') || '').trim()
     const targetDate = String(form.get('targetDate') || '').trim()
     if (!title || !firstStep) return
@@ -631,6 +674,7 @@ function App() {
       {
         id: uid(),
         title,
+        tag: tag || 'цель',
         targetDate: targetDate || null,
         createdAt: new Date().toISOString(),
         items: [{ id: uid(), title: firstStep, done: false, createdAt: new Date().toISOString() }],
@@ -663,6 +707,7 @@ function App() {
     )
     triggerReward()
     setGoalStepSheetOpen(false)
+    setActiveGoalId('')
   }
 
   const openGoalPage = (goalId) => {
@@ -675,6 +720,7 @@ function App() {
   const dealsNeeded = revenueRemaining === 0 ? 0 : Math.ceil(revenueRemaining / Math.max(500, averageDeal))
   const clientsProgress = (monthDeals / MONTHLY_CLIENT_GOAL) * 100
   const moneyProgress = (thisMonthIncome / MONTHLY_REVENUE_GOAL) * 100
+  const timerToneClass = timerState.expired ? 'is-red' : isTimerAmber ? 'is-amber' : 'is-green'
 
   const renderNowTab = () => (
     <section className="now-screen">
@@ -683,14 +729,14 @@ function App() {
           <p className="big-line">На сегодня всё закрыто.</p>
           <button
             className="primary-btn"
-            onClick={() => setDailyPlan((prev) => ({ ...prev, date: '', tasks: [], currentIndex: 0 }))}
+            onClick={() => setDailyPlan((prev) => ({ ...prev, date: '', tasks: [] }))}
           >
             Сгенерировать новый фокус
           </button>
         </div>
       ) : (
         <div className={`focus-card ${rewardPulse ? 'reward' : ''}`}>
-          <span className="tag-chip" style={{ background: TAG_COLORS[currentTask?.tag] || '#d9f3ea' }}>
+          <span className="tag-chip" style={{ background: TAG_COLORS[currentTask?.tag] || '#173328' }}>
             {currentTask?.tag || 'фокус'}
           </span>
           <p className="big-line">{currentTask?.action || 'Подготовка фокуса...'}</p>
@@ -701,7 +747,7 @@ function App() {
             </button>
           ) : (
             <div className="timer-wrap">
-              <p className="timer-value">{formatSeconds(timerState.secondsLeft)}</p>
+              <p className={`timer-value ${timerToneClass}`}>{formatSeconds(timerState.secondsLeft)}</p>
               <div className="timer-actions">
                 <button className="primary-btn" onClick={completeCurrentTask}>
                   Готово
@@ -719,9 +765,39 @@ function App() {
             </button>
           )}
 
-          <button className="tiny-link" onClick={() => setShowTasksSheet(true)}>
-            ещё {remainingTasks} задач сегодня
-          </button>
+          {queueTasks.length > 0 ? (
+            <section className="queue-wrap">
+              <p className="muted">Остальные задачи (перетаскивайте порядок)</p>
+              <div className="queue-list">
+                {queueTasks.map((task, index) => {
+                  const fullIndex = index + 1
+                  return (
+                    <article
+                      key={task.id}
+                      className="task-row collapsed"
+                      draggable={!timerOverlayVisible}
+                      onDragStart={() => setDragTaskIndex(fullIndex)}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={() => {
+                        if (dragTaskIndex === null) return
+                        moveTask(dragTaskIndex, fullIndex)
+                        setDragTaskIndex(null)
+                      }}
+                      onDragEnd={() => setDragTaskIndex(null)}
+                    >
+                      <span className="drag-mark">↕</span>
+                      <div>
+                        <span className="tag-chip" style={{ background: TAG_COLORS[task.tag] || '#173328' }}>
+                          {task.tag}
+                        </span>
+                        <p>{task.action}</p>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            </section>
+          ) : null}
         </div>
       )}
     </section>
@@ -855,7 +931,11 @@ function App() {
           <div className="checklist">
             {activeGoal.items.map((item) => (
               <label key={item.id} className="check-row">
-                <input type="checkbox" checked={item.done} onChange={() => toggleCustomGoalItem(activeGoal.id, item.id)} />
+                <input
+                  type="checkbox"
+                  checked={item.done}
+                  onChange={() => toggleCustomGoalItem(activeGoal.id, item.id)}
+                />
                 <span>{item.title}</span>
               </label>
             ))}
@@ -870,32 +950,51 @@ function App() {
 
     return (
       <section className="tab-screen">
-        <div className="goal-projects-header">
-          <h2 className="section-title">Цели</h2>
+        <div className="goals-header">
+          <h2 className="section-title">Мои цели</h2>
           <button className="secondary-btn inline-btn" onClick={() => setGoalSheetOpen(true)}>
             + Цель
           </button>
         </div>
 
         {customGoals.length === 0 ? (
-          <article className="goal-project-card empty">
+          <article className="goal-card empty">
             <p className="lead-name">Пока нет целей</p>
-            <p className="muted">Создайте цель, и для неё появится отдельная страница.</p>
+            <p className="muted">Создайте первую цель с дедлайном и шагом.</p>
           </article>
         ) : (
-          <div className="goal-projects">
-            {customGoals.map((goal) => {
+          <div className="goals-list">
+            {customGoals.map((goal, index) => {
               const doneCount = goal.items.filter((item) => item.done).length
               const progress = goal.items.length ? (doneCount / goal.items.length) * 100 : 0
               return (
-                <article key={goal.id} className="goal-project-card">
+                <article key={goal.id} className="goal-card">
+                  <div className="goal-card-header">
+                    <span className="tag-chip">{goal.tag || 'цель'}</span>
+                    <div className="goal-order-actions">
+                      <button className="ghost-btn" onClick={() => moveGoal(index, -1)} disabled={index === 0}>
+                        ↑
+                      </button>
+                      <button
+                        className="ghost-btn"
+                        onClick={() => moveGoal(index, 1)}
+                        disabled={index === customGoals.length - 1}
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  </div>
                   <p className="lead-name">{goal.title}</p>
+                  <p className="muted">{goal.targetDate ? `дедлайн: ${goal.targetDate}` : 'без дедлайна'}</p>
+                  <Progress value={progress} />
                   <p className="muted">
                     {doneCount}/{goal.items.length} шагов
                   </p>
-                  <Progress value={progress} />
                   <button className="primary-btn" onClick={() => openGoalPage(goal.id)}>
                     Открыть страницу цели
+                  </button>
+                  <button className="secondary-btn danger-btn" onClick={() => removeGoal(goal.id)}>
+                    Удалить цель
                   </button>
                 </article>
               )
@@ -937,8 +1036,8 @@ function App() {
       <BottomSheet open={showTasksSheet} onClose={() => setShowTasksSheet(false)} title="Задачи на сегодня">
         <div className="tasks-sheet">
           {dailyPlan.tasks.map((task, index) => (
-            <article key={task.id} className={`task-row ${index < dailyPlan.currentIndex ? 'done' : ''}`}>
-              <span className="tag-chip" style={{ background: TAG_COLORS[task.tag] || '#d9f3ea' }}>
+            <article key={task.id} className={`task-row ${index === 0 ? '' : 'done'}`}>
+              <span className="tag-chip" style={{ background: TAG_COLORS[task.tag] || '#173328' }}>
                 {task.tag}
               </span>
               <p>{task.action}</p>
@@ -1017,6 +1116,7 @@ function App() {
       <BottomSheet open={goalSheetOpen} onClose={() => setGoalSheetOpen(false)} title="Новая цель">
         <form className="stack" onSubmit={addCustomGoal}>
           <input name="title" placeholder="Название цели" required />
+          <input name="tag" placeholder="Тег (например: бизнес)" />
           <input name="firstStep" placeholder="Первый шаг" required />
           <input name="targetDate" type="date" />
           <button className="primary-btn" type="submit">
@@ -1033,6 +1133,15 @@ function App() {
           </button>
         </form>
       </BottomSheet>
+
+      <div className={`timer-overlay ${timerOverlayVisible ? 'show' : ''}`} aria-hidden={!timerOverlayVisible}>
+        <div className="timer-overlay-card">
+          <p className={`overlay-time ${timerToneClass}`}>{formatSeconds(timerState.secondsLeft)}</p>
+          <button className="primary-btn overlay-done-btn" onClick={completeCurrentTask}>
+            Готово
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
