@@ -235,7 +235,7 @@ textarea,
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding-bottom: 96px;
+  padding-bottom: 24px;
 }
 
 .check-row {
@@ -253,6 +253,52 @@ textarea,
   width: 22px;
   height: 22px;
   accent-color: var(--accent);
+}
+
+.goal-projects {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 104px;
+}
+
+.goal-projects-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.goal-projects-header h3 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.inline-btn {
+  width: auto;
+  padding-inline: 12px;
+  min-height: 42px;
+  font-size: 15px;
+}
+
+.goal-project-card {
+  border: 1px solid #d9ece6;
+  border-radius: 16px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.goal-project-card.empty {
+  gap: 6px;
+}
+
+.project-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .question-alert {

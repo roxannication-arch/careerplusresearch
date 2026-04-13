@@ -25,6 +25,7 @@ const localKey = {
   leads: 'lifeos:leads',
   payments: 'lifeos:payments',
   l1Items: 'lifeos:l1-items',
+  goalProjects: 'lifeos:goal-projects',
   dailyPlan: 'lifeos:daily-plan',
   timer: 'lifeos:timer',
   l1Activity: 'lifeos:l1-activity',
@@ -92,6 +93,19 @@ const fallbackTasks = (snapshot) => {
     })
   }
 
+  const customProject = (snapshot.goalProjects || []).find((project) =>
+    (project.items || []).some((item) => !item.done),
+  )
+  if (customProject) {
+    const nextStep = customProject.items.find((item) => !item.done)
+    tasks.push({
+      id: uid(),
+      tag: 'L1',
+      action: `${customProject.title}: ${nextStep.title}`,
+      minutes: 25,
+    })
+  }
+
   tasks.push(
     {
       id: uid(),
@@ -141,6 +155,7 @@ function App() {
   const [leadIndex, setLeadIndex] = useState(0)
   const [payments, setPayments] = useState([])
   const [l1Items, setL1Items] = useState([])
+  const [goalProjects, setGoalProjects] = useState([])
   const [dailyPlan, setDailyPlan] = useState({ date: '', tasks: [], currentIndex: 0 })
   const [timerState, setTimerState] = useState({
     running: false,
@@ -161,6 +176,9 @@ function App() {
   const [paymentSheetOpen, setPaymentSheetOpen] = useState(false)
   const [csvSheetOpen, setCsvSheetOpen] = useState(false)
   const [l1SheetOpen, setL1SheetOpen] = useState(false)
+  const [projectSheetOpen, setProjectSheetOpen] = useState(false)
+  const [projectStepSheetOpen, setProjectStepSheetOpen] = useState(false)
+  const [activeProjectId, setActiveProjectId] = useState('')
   const [csvMessage, setCsvMessage] = useState('')
   const [l1LastActivity, setL1LastActivity] = useState(dayKey())
   const [l1AlertAnswer, setL1AlertAnswer] = useState('')
@@ -206,6 +224,7 @@ function App() {
     const savedLeads = load(localKey.leads, [])
     const savedPayments = load(localKey.payments, [])
     const savedL1 = load(localKey.l1Items, null)
+    const savedGoalProjects = load(localKey.goalProjects, [])
     const savedPlan = load(localKey.dailyPlan, null)
     const savedTimer = load(localKey.timer, null)
     const savedL1Activity = load(localKey.l1Activity, dayKey())
@@ -218,6 +237,7 @@ function App() {
         ? savedL1
         : DEFAULT_L1_ITEMS.map((title) => ({ id: uid(), title, done: false, createdAt: new Date().toISOString() })),
     )
+    setGoalProjects(savedGoalProjects || [])
     setDailyPlan(savedPlan || { date: '', tasks: [], currentIndex: 0 })
     setTimerState(
       savedTimer || {
@@ -250,6 +270,11 @@ function App() {
 
   useEffect(() => {
     if (!loaded) return
+    save(localKey.goalProjects, goalProjects)
+  }, [goalProjects, loaded])
+
+  useEffect(() => {
+    if (!loaded) return
     save(localKey.dailyPlan, dailyPlan)
   }, [dailyPlan, loaded])
 
@@ -274,7 +299,7 @@ function App() {
 
     const generate = async () => {
       setLoadingTasks(true)
-      const snapshot = { leads, payments, l1Items }
+      const snapshot = { leads, payments, l1Items, goalProjects }
       let tasks = fallbackTasks(snapshot)
       try {
         const response = await fetch('/api/claude', {
@@ -312,7 +337,7 @@ function App() {
     }
 
     generate()
-  }, [dailyPlan.date, dailyPlan.tasks.length, l1Items, leads, loaded, payments])
+  }, [dailyPlan.date, dailyPlan.tasks.length, goalProjects, l1Items, leads, loaded, payments])
 
   useEffect(() => {
     if (!timerState.running || !timerState.endAt) return undefined
@@ -570,6 +595,70 @@ function App() {
     setL1SheetOpen(false)
   }
 
+  const toggleGoalProjectItem = (projectId, itemId) => {
+    setGoalProjects((prev) =>
+      prev.map((project) => {
+        if (project.id !== projectId) return project
+        return {
+          ...project,
+          items: project.items.map((item) =>
+            item.id === itemId ? { ...item, done: !item.done, updatedAt: new Date().toISOString() } : item,
+          ),
+        }
+      }),
+    )
+    setL1LastActivity(dayKey())
+    triggerReward()
+  }
+
+  const addGoalProject = (event) => {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    const title = String(form.get('title') || '').trim()
+    const firstStep = String(form.get('firstStep') || '').trim()
+    if (!title || !firstStep) return
+
+    setGoalProjects((prev) => [
+      ...prev,
+      {
+        id: uid(),
+        title,
+        createdAt: new Date().toISOString(),
+        items: [{ id: uid(), title: firstStep, done: false, createdAt: new Date().toISOString() }],
+      },
+    ])
+    setL1LastActivity(dayKey())
+    triggerReward()
+    setProjectSheetOpen(false)
+  }
+
+  const openProjectStepSheet = (projectId) => {
+    setActiveProjectId(projectId)
+    setProjectStepSheetOpen(true)
+  }
+
+  const addGoalProjectStep = (event) => {
+    event.preventDefault()
+    if (!activeProjectId) return
+    const form = new FormData(event.currentTarget)
+    const title = String(form.get('title') || '').trim()
+    if (!title) return
+
+    setGoalProjects((prev) =>
+      prev.map((project) => {
+        if (project.id !== activeProjectId) return project
+        return {
+          ...project,
+          items: [...project.items, { id: uid(), title, done: false, createdAt: new Date().toISOString() }],
+        }
+      }),
+    )
+    setL1LastActivity(dayKey())
+    triggerReward()
+    setProjectStepSheetOpen(false)
+    setActiveProjectId('')
+  }
+
   const averageDeal = thisMonthIncome > 0 && monthDeals > 0 ? thisMonthIncome / monthDeals : 1500
   const revenueRemaining = Math.max(0, MONTHLY_REVENUE_GOAL - thisMonthIncome)
   const dealsNeeded = revenueRemaining === 0 ? 0 : Math.ceil(revenueRemaining / Math.max(500, averageDeal))
@@ -725,6 +814,51 @@ function App() {
         ))}
       </div>
 
+      <section className="goal-projects">
+        <div className="goal-projects-header">
+          <h3>Проекты под цель</h3>
+          <button className="secondary-btn inline-btn" onClick={() => setProjectSheetOpen(true)}>
+            + Проект
+          </button>
+        </div>
+
+        {goalProjects.length === 0 ? (
+          <article className="goal-project-card empty">
+            <p className="lead-name">Пока нет доп. проектов</p>
+            <p className="muted">Добавьте проект под цель и ведите его шагами.</p>
+          </article>
+        ) : (
+          goalProjects.map((project) => {
+            const doneCount = project.items.filter((item) => item.done).length
+            const progress = project.items.length ? (doneCount / project.items.length) * 100 : 0
+            return (
+              <article key={project.id} className="goal-project-card">
+                <p className="lead-name">{project.title}</p>
+                <p className="muted">
+                  {doneCount}/{project.items.length} шагов
+                </p>
+                <Progress value={progress} />
+                <div className="project-items">
+                  {project.items.map((item) => (
+                    <label key={item.id} className="check-row">
+                      <input
+                        type="checkbox"
+                        checked={item.done}
+                        onChange={() => toggleGoalProjectItem(project.id, item.id)}
+                      />
+                      <span>{item.title}</span>
+                    </label>
+                  ))}
+                </div>
+                <button className="secondary-btn" onClick={() => openProjectStepSheet(project.id)}>
+                  + Добавить шаг
+                </button>
+              </article>
+            )
+          })
+        )}
+      </section>
+
       <button className="fab" onClick={() => setL1SheetOpen(true)} aria-label="Добавить пункт L1">
         +
       </button>
@@ -831,6 +965,32 @@ function App() {
           <input name="title" placeholder="Что добавить?" required />
           <button className="primary-btn" type="submit">
             Добавить
+          </button>
+        </form>
+      </BottomSheet>
+
+      <BottomSheet open={projectSheetOpen} onClose={() => setProjectSheetOpen(false)} title="Новый проект под цель">
+        <form className="stack" onSubmit={addGoalProject}>
+          <input name="title" placeholder="Название проекта" required />
+          <input name="firstStep" placeholder="Первый шаг" required />
+          <button className="primary-btn" type="submit">
+            Добавить проект
+          </button>
+        </form>
+      </BottomSheet>
+
+      <BottomSheet
+        open={projectStepSheetOpen}
+        onClose={() => {
+          setProjectStepSheetOpen(false)
+          setActiveProjectId('')
+        }}
+        title="Новый шаг проекта"
+      >
+        <form className="stack" onSubmit={addGoalProjectStep}>
+          <input name="title" placeholder="Что сделать дальше?" required />
+          <button className="primary-btn" type="submit">
+            Добавить шаг
           </button>
         </form>
       </BottomSheet>
