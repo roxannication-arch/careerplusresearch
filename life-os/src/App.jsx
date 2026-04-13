@@ -6,6 +6,8 @@ const MONTHLY_CLIENT_GOAL = 4
 const MONTHLY_REVENUE_GOAL = 15000
 const POMODORO_MINUTES = 25
 const LEAD_STATUSES = ['Новый', 'Созвон', 'Думает', 'Договор', 'Оплатил', 'Отказ']
+const GOAL_TAGS = ['L1', 'деньги', 'клиент', 'личное']
+const LEAD_SOURCES = ['Telegram', 'Instagram', 'сарафан', 'другое']
 const DEFAULT_L1_ITEMS = [
   'Изучить требования',
   'Выбрать агентство',
@@ -14,12 +16,14 @@ const DEFAULT_L1_ITEMS = [
   'Подготовить документы',
   'Подать (октябрь 2026)',
 ]
+
 const TAG_COLORS = {
   L1: '#193429',
   деньги: '#173328',
   клиент: '#173228',
   контент: '#1a352a',
   цель: '#18342a',
+  личное: '#1f2f2a',
 }
 
 const localKey = {
@@ -63,10 +67,7 @@ const load = (key, fallback) => parseJSON(window.localStorage.getItem(key), fall
 
 const fallbackTasks = (snapshot) => {
   const tasks = []
-  const staleLead = snapshot.leads.find(
-    (lead) => lead.status === 'Думает' && daysBetween(lead.statusSince) > 5,
-  )
-
+  const staleLead = snapshot.leads.find((lead) => lead.status === 'Думает' && daysBetween(lead.statusSince) > 5)
   if (staleLead) {
     tasks.push({
       id: uid(),
@@ -80,7 +81,7 @@ const fallbackTasks = (snapshot) => {
     tasks.push({
       id: uid(),
       tag: 'деньги',
-      action: 'Добавить все оплаты за месяц, чтобы увидеть реальный прогресс',
+      action: 'Добавить оплаты за месяц, чтобы увидеть реальный прогресс',
       minutes: 25,
     })
   }
@@ -95,32 +96,21 @@ const fallbackTasks = (snapshot) => {
     })
   }
 
-  const customGoal = (snapshot.customGoals || []).find((goal) => (goal.items || []).some((item) => !item.done))
-  if (customGoal) {
-    const nextStep = customGoal.items.find((item) => !item.done)
+  const goalWithStep = (snapshot.customGoals || []).find((goal) => (goal.items || []).some((item) => !item.done))
+  if (goalWithStep) {
+    const nextStep = goalWithStep.items.find((item) => !item.done)
     tasks.push({
       id: uid(),
-      tag: 'цель',
-      action: `${customGoal.title}: ${nextStep.title}`,
+      tag: goalWithStep.tag || 'цель',
+      action: `${goalWithStep.title}: ${nextStep.title}`,
       minutes: 25,
     })
   }
 
   tasks.push(
-    {
-      id: uid(),
-      tag: 'клиент',
-      action: 'Написать 1 новому лиду из текущего канала',
-      minutes: 25,
-    },
-    {
-      id: uid(),
-      tag: 'контент',
-      action: 'Сделать один короткий полезный пост для прогрева клиентов',
-      minutes: 25,
-    },
+    { id: uid(), tag: 'клиент', action: 'Написать 1 новому лиду из текущего канала', minutes: 25 },
+    { id: uid(), tag: 'контент', action: 'Сделать короткий полезный пост', minutes: 25 },
   )
-
   return tasks.slice(0, 5)
 }
 
@@ -153,6 +143,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('now')
   const [leads, setLeads] = useState([])
   const [leadIndex, setLeadIndex] = useState(0)
+  const [leadStatusMenuOpen, setLeadStatusMenuOpen] = useState(false)
   const [payments, setPayments] = useState([])
   const [l1Items, setL1Items] = useState([])
   const [customGoals, setCustomGoals] = useState([])
@@ -163,9 +154,8 @@ function App() {
     expired: false,
     endAt: null,
     taskId: null,
-    secondsLeft: 25 * 60,
+    secondsLeft: POMODORO_MINUTES * 60,
   })
-  const [dragTaskIndex, setDragTaskIndex] = useState(null)
   const [loadingTasks, setLoadingTasks] = useState(false)
   const [showTasksSheet, setShowTasksSheet] = useState(false)
   const [skipSheetOpen, setSkipSheetOpen] = useState(false)
@@ -192,6 +182,7 @@ function App() {
   const activeGoal = customGoals.find((goal) => goal.id === activeGoalId) || null
   const timerOverlayVisible = timerState.running || timerState.expired
   const isTimerAmber = timerState.secondsLeft > 0 && timerState.secondsLeft <= 5 * 60
+  const timerToneClass = timerState.expired ? 'is-red' : isTimerAmber ? 'is-amber' : 'is-green'
 
   const l1Deadline = new Date('2026-10-01T00:00:00')
   const countdownDays = Math.max(0, Math.ceil((l1Deadline.getTime() - Date.now()) / 86400000))
@@ -220,8 +211,7 @@ function App() {
 
   const l1Progress = useMemo(() => {
     if (l1Items.length === 0) return 0
-    const done = l1Items.filter((item) => item.done).length
-    return (done / l1Items.length) * 100
+    return (l1Items.filter((item) => item.done).length / l1Items.length) * 100
   }, [l1Items])
 
   useEffect(() => {
@@ -229,7 +219,7 @@ function App() {
     const savedPayments = load(localKey.payments, [])
     const savedL1 = load(localKey.l1Items, null)
     const savedCustomGoals = load(localKey.customGoals, null)
-    const savedLegacyProjects = load(localKey.goalProjectsLegacy, [])
+    const savedLegacyGoals = load(localKey.goalProjectsLegacy, [])
     const savedPlan = load(localKey.dailyPlan, null)
     const savedTimer = load(localKey.timer, null)
     const savedL1Activity = load(localKey.l1Activity, dayKey())
@@ -242,7 +232,7 @@ function App() {
         ? savedL1
         : DEFAULT_L1_ITEMS.map((title) => ({ id: uid(), title, done: false, createdAt: new Date().toISOString() })),
     )
-    setCustomGoals(Array.isArray(savedCustomGoals) ? savedCustomGoals : savedLegacyProjects || [])
+    setCustomGoals(Array.isArray(savedCustomGoals) ? savedCustomGoals : savedLegacyGoals || [])
     setDailyPlan(savedPlan || { date: '', tasks: [] })
     setTimerState(
       savedTimer || {
@@ -250,7 +240,7 @@ function App() {
         expired: false,
         endAt: null,
         taskId: null,
-        secondsLeft: 25 * 60,
+        secondsLeft: POMODORO_MINUTES * 60,
       },
     )
     setL1LastActivity(savedL1Activity || dayKey())
@@ -335,7 +325,7 @@ function App() {
           }
         }
       } catch {
-        // fallback when Claude unavailable
+        // fallback
       } finally {
         setLoadingTasks(false)
       }
@@ -387,18 +377,19 @@ function App() {
       }
     }
     const seconds = POMODORO_MINUTES * 60
-    const endAt = Date.now() + seconds * 1000
-    setTimerState({ running: true, expired: false, endAt, taskId: currentTask.id, secondsLeft: seconds })
+    setTimerState({
+      running: true,
+      expired: false,
+      endAt: Date.now() + seconds * 1000,
+      taskId: currentTask.id,
+      secondsLeft: seconds,
+    })
   }
 
   const completeCurrentTask = () => {
     triggerReward()
-    setTimerState({ running: false, expired: false, endAt: null, taskId: null, secondsLeft: 25 * 60 })
-    setDailyPlan((prev) => ({
-      ...prev,
-      tasks: prev.tasks.slice(1),
-      
-    }))
+    setTimerState({ running: false, expired: false, endAt: null, taskId: null, secondsLeft: POMODORO_MINUTES * 60 })
+    setDailyPlan((prev) => ({ ...prev, tasks: prev.tasks.slice(1) }))
   }
 
   const openSkip = () => {
@@ -431,20 +422,28 @@ function App() {
 
   const applySmallerStep = () => {
     if (!skipStep || !currentTask) return
-    setDailyPlan((prev) => ({
-      ...prev,
-      tasks: prev.tasks.map((task, index) => (index === 0 ? { ...task, action: skipStep } : task)),
-    }))
+    setDailyPlan((prev) => ({ ...prev, tasks: prev.tasks.map((task, i) => (i === 0 ? { ...task, action: skipStep } : task)) }))
     setSkipSheetOpen(false)
   }
 
   const skipTask = () => {
-    setTimerState({ running: false, expired: false, endAt: null, taskId: null, secondsLeft: 25 * 60 })
+    setTimerState({ running: false, expired: false, endAt: null, taskId: null, secondsLeft: POMODORO_MINUTES * 60 })
     setSkipSheetOpen(false)
     setDailyPlan((prev) => {
       if (prev.tasks.length <= 1) return prev
       const [first, ...rest] = prev.tasks
       return { ...prev, tasks: [...rest, first] }
+    })
+  }
+
+  const moveTaskByArrows = (index, direction) => {
+    setDailyPlan((prev) => {
+      const target = index + direction
+      if (index < 1 || target < 1 || index >= prev.tasks.length || target >= prev.tasks.length) return prev
+      const next = [...prev.tasks]
+      const [task] = next.splice(index, 1)
+      next.splice(target, 0, task)
+      return { ...prev, tasks: next }
     })
   }
 
@@ -454,41 +453,23 @@ function App() {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
   }
 
-  const moveTask = (fromIndex, toIndex) => {
-    setDailyPlan((prev) => {
-      if (
-        fromIndex < 0 ||
-        toIndex < 0 ||
-        fromIndex >= prev.tasks.length ||
-        toIndex >= prev.tasks.length ||
-        fromIndex === toIndex
-      ) {
-        return prev
-      }
-      const nextTasks = [...prev.tasks]
-      const [task] = nextTasks.splice(fromIndex, 1)
-      nextTasks.splice(toIndex, 0, task)
-      return { ...prev, tasks: nextTasks }
-    })
-  }
-
   const addLead = (event) => {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     const name = String(form.get('name') || '').trim()
     const source = String(form.get('source') || '').trim()
-    const date = String(form.get('date') || dayKey())
+    const firstContactDate = String(form.get('date') || dayKey())
     if (!name || !source) return
-
     setLeads((prev) => [
       ...prev,
       {
         id: uid(),
         name,
         source,
-        createdAt: new Date(date).toISOString(),
-        status: LEAD_STATUSES[0],
-        statusSince: new Date(date).toISOString(),
+        createdAt: new Date(firstContactDate).toISOString(),
+        firstContactDate,
+        status: 'Новый',
+        statusSince: new Date(firstContactDate).toISOString(),
       },
     ])
     triggerReward()
@@ -506,24 +487,23 @@ function App() {
     const delta = event.changedTouches[0].clientX - touchStartX.current
     if (delta > 60 && leads.length > 1) {
       setLeadIndex((prev) => (prev + 1) % leads.length)
+      setLeadStatusMenuOpen(false)
     }
   }
 
-  const advanceLeadStatus = () => {
-    if (!currentLead) return
-    const currentStatusIndex = LEAD_STATUSES.indexOf(currentLead.status)
-    const nextStatus = LEAD_STATUSES[Math.min(LEAD_STATUSES.length - 1, currentStatusIndex + 1)]
+  const updateLeadStatus = (leadId, status) => {
     setLeads((prev) =>
       prev.map((lead) => {
-        if (lead.id !== currentLead.id) return lead
+        if (lead.id !== leadId) return lead
         return {
           ...lead,
-          status: nextStatus,
+          status,
           statusSince: new Date().toISOString(),
-          paidAt: nextStatus === 'Оплатил' ? new Date().toISOString() : lead.paidAt || null,
+          paidAt: status === 'Оплатил' ? new Date().toISOString() : lead.paidAt || null,
         }
       }),
     )
+    setLeadStatusMenuOpen(false)
     triggerReward()
   }
 
@@ -534,7 +514,6 @@ function App() {
     const amount = Number(form.get('amount') || 0)
     const date = String(form.get('date') || dayKey())
     if (!name || !amount) return
-
     setPayments((prev) => [...prev, { id: uid(), name, amount, date }])
     triggerReward()
     setPaymentSheetOpen(false)
@@ -546,14 +525,11 @@ function App() {
     let inQuotes = false
     for (let i = 0; i < line.length; i += 1) {
       const char = line[i]
-      if (char === '"') {
-        inQuotes = !inQuotes
-      } else if (char === delimiter && !inQuotes) {
+      if (char === '"') inQuotes = !inQuotes
+      else if (char === delimiter && !inQuotes) {
         result.push(current.trim())
         current = ''
-      } else {
-        current += char
-      }
+      } else current += char
     }
     result.push(current.trim())
     return result.map((item) => item.replace(/^"|"$/g, ''))
@@ -568,13 +544,11 @@ function App() {
       setCsvMessage('Файл пустой или без строк данных.')
       return
     }
-
     const delimiter = rows[0].includes(';') ? ';' : ','
     const headers = parseCSVLine(rows[0], delimiter).map((h) => h.toLowerCase())
     const amountIndex = headers.findIndex((h) => /(amount|sum|сумм)/.test(h))
     const dateIndex = headers.findIndex((h) => /(date|дата)/.test(h))
     const nameIndex = headers.findIndex((h) => /(name|description|counterparty|client|коммент|описан)/.test(h))
-
     if (amountIndex < 0 || dateIndex < 0) {
       setCsvMessage('Не нашёл колонки суммы и даты.')
       return
@@ -585,8 +559,7 @@ function App() {
       const cols = parseCSVLine(row, delimiter)
       const amount = Number(String(cols[amountIndex] || '0').replace(/[^\d.-]/g, ''))
       if (!Number.isFinite(amount) || amount <= 0) continue
-      const dateRaw = cols[dateIndex]
-      const date = new Date(dateRaw)
+      const date = new Date(cols[dateIndex])
       if (Number.isNaN(date.getTime())) continue
       imported.push({
         id: uid(),
@@ -600,7 +573,6 @@ function App() {
       setCsvMessage('Не нашёл входящие платежи в файле.')
       return
     }
-
     setPayments((prev) => [...prev, ...imported])
     triggerReward()
     setCsvMessage(`Импортировано ${imported.length} платежей.`)
@@ -608,10 +580,7 @@ function App() {
 
   const toggleL1Item = (id) => {
     setL1Items((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item
-        return { ...item, done: !item.done, updatedAt: new Date().toISOString() }
-      }),
+      prev.map((item) => (item.id === id ? { ...item, done: !item.done, updatedAt: new Date().toISOString() } : item)),
     )
     setL1LastActivity(dayKey())
     triggerReward()
@@ -630,15 +599,16 @@ function App() {
 
   const toggleCustomGoalItem = (goalId, itemId) => {
     setCustomGoals((prev) =>
-      prev.map((goal) => {
-        if (goal.id !== goalId) return goal
-        return {
-          ...goal,
-          items: goal.items.map((item) =>
-            item.id === itemId ? { ...item, done: !item.done, updatedAt: new Date().toISOString() } : item,
-          ),
-        }
-      }),
+      prev.map((goal) =>
+        goal.id === goalId
+          ? {
+              ...goal,
+              items: goal.items.map((item) =>
+                item.id === itemId ? { ...item, done: !item.done, updatedAt: new Date().toISOString() } : item,
+              ),
+            }
+          : goal,
+      ),
     )
     triggerReward()
   }
@@ -665,19 +635,17 @@ function App() {
     const form = new FormData(event.currentTarget)
     const title = String(form.get('title') || '').trim()
     const tag = String(form.get('tag') || '').trim()
-    const firstStep = String(form.get('firstStep') || '').trim()
     const targetDate = String(form.get('targetDate') || '').trim()
-    if (!title || !firstStep) return
-
+    if (!title) return
     setCustomGoals((prev) => [
       ...prev,
       {
         id: uid(),
         title,
-        tag: tag || 'цель',
+        tag: GOAL_TAGS.includes(tag) ? tag : 'личное',
         targetDate: targetDate || null,
         createdAt: new Date().toISOString(),
-        items: [{ id: uid(), title: firstStep, done: false, createdAt: new Date().toISOString() }],
+        items: [{ id: uid(), title: 'Первый шаг', done: false, createdAt: new Date().toISOString() }],
       },
     ])
     triggerReward()
@@ -695,15 +663,12 @@ function App() {
     const form = new FormData(event.currentTarget)
     const title = String(form.get('title') || '').trim()
     if (!title) return
-
     setCustomGoals((prev) =>
-      prev.map((goal) => {
-        if (goal.id !== activeGoalId) return goal
-        return {
-          ...goal,
-          items: [...goal.items, { id: uid(), title, done: false, createdAt: new Date().toISOString() }],
-        }
-      }),
+      prev.map((goal) =>
+        goal.id === activeGoalId
+          ? { ...goal, items: [...goal.items, { id: uid(), title, done: false, createdAt: new Date().toISOString() }] }
+          : goal,
+      ),
     )
     triggerReward()
     setGoalStepSheetOpen(false)
@@ -720,17 +685,13 @@ function App() {
   const dealsNeeded = revenueRemaining === 0 ? 0 : Math.ceil(revenueRemaining / Math.max(500, averageDeal))
   const clientsProgress = (monthDeals / MONTHLY_CLIENT_GOAL) * 100
   const moneyProgress = (thisMonthIncome / MONTHLY_REVENUE_GOAL) * 100
-  const timerToneClass = timerState.expired ? 'is-red' : isTimerAmber ? 'is-amber' : 'is-green'
 
   const renderNowTab = () => (
     <section className="now-screen">
       {!currentTask && !loadingTasks ? (
         <div className="focus-card completed">
           <p className="big-line">На сегодня всё закрыто.</p>
-          <button
-            className="primary-btn"
-            onClick={() => setDailyPlan((prev) => ({ ...prev, date: '', tasks: [] }))}
-          >
+          <button className="primary-btn" onClick={() => setDailyPlan((prev) => ({ ...prev, date: '', tasks: [] }))}>
             Сгенерировать новый фокус
           </button>
         </div>
@@ -752,45 +713,41 @@ function App() {
                 <button className="primary-btn" onClick={completeCurrentTask}>
                   Готово
                 </button>
-                <button className="secondary-btn" onClick={openSkip}>
-                  Пропустить
-                </button>
               </div>
             </div>
           )}
 
           {!timerState.running && !timerState.expired && currentTask && (
-            <button className="secondary-btn ask-btn" onClick={openSkip}>
+            <button className="skip-link-btn" onClick={openSkip}>
               Пропустить
             </button>
           )}
 
           {queueTasks.length > 0 ? (
             <section className="queue-wrap">
-              <p className="muted">Остальные задачи (перетаскивайте порядок)</p>
+              <p className="muted">Остальные задачи</p>
               <div className="queue-list">
                 {queueTasks.map((task, index) => {
                   const fullIndex = index + 1
                   return (
-                    <article
-                      key={task.id}
-                      className="task-row collapsed"
-                      draggable={!timerOverlayVisible}
-                      onDragStart={() => setDragTaskIndex(fullIndex)}
-                      onDragOver={(event) => event.preventDefault()}
-                      onDrop={() => {
-                        if (dragTaskIndex === null) return
-                        moveTask(dragTaskIndex, fullIndex)
-                        setDragTaskIndex(null)
-                      }}
-                      onDragEnd={() => setDragTaskIndex(null)}
-                    >
-                      <span className="drag-mark">↕</span>
+                    <article key={task.id} className="task-row collapsed">
                       <div>
                         <span className="tag-chip" style={{ background: TAG_COLORS[task.tag] || '#173328' }}>
                           {task.tag}
                         </span>
                         <p>{task.action}</p>
+                      </div>
+                      <div className="task-order-actions">
+                        <button className="ghost-btn" onClick={() => moveTaskByArrows(fullIndex, -1)} disabled={fullIndex === 1}>
+                          ↑
+                        </button>
+                        <button
+                          className="ghost-btn"
+                          onClick={() => moveTaskByArrows(fullIndex, 1)}
+                          disabled={fullIndex === dailyPlan.tasks.length - 1}
+                        >
+                          ↓
+                        </button>
                       </div>
                     </article>
                   )
@@ -806,24 +763,34 @@ function App() {
   const renderLeadsTab = () => (
     <section className="tab-screen">
       <h2 className="section-title">Лиды</h2>
-      <p className="metric">{monthDeals} / {MONTHLY_CLIENT_GOAL} клиента</p>
+      <p className="metric">
+        {monthDeals} / {MONTHLY_CLIENT_GOAL} клиента
+      </p>
       <Progress value={clientsProgress} />
 
       {currentLead ? (
-        <article
-          className={`lead-card ${currentLeadDays > 5 ? 'stale' : ''}`}
-          onTouchStart={leadSwipeStart}
-          onTouchEnd={leadSwipeEnd}
-        >
+        <article className={`lead-card ${currentLeadDays > 5 ? 'stale' : ''}`} onTouchStart={leadSwipeStart} onTouchEnd={leadSwipeEnd}>
           <p className="lead-name">{currentLead.name}</p>
           <p className="muted">{currentLead.source}</p>
-          <p className="status-line">
-            {currentLead.status.toLowerCase()} {currentLeadDays} дн.
-          </p>
-          <button className="primary-btn" onClick={advanceLeadStatus}>
-            Статус: {currentLead.status} → следующий
+          <p className="muted">первый контакт: {currentLead.firstContactDate || dayKey(new Date(currentLead.createdAt))}</p>
+          <p className="status-line">{currentLead.status.toLowerCase()} {currentLeadDays} дн.</p>
+          <button className="primary-btn" onClick={() => setLeadStatusMenuOpen((prev) => !prev)}>
+            Статус: {currentLead.status}
           </button>
-          <button className="secondary-btn" onClick={() => setLeadIndex((prev) => (prev + 1) % leads.length)}>
+          {leadStatusMenuOpen ? (
+            <div className="status-menu">
+              {LEAD_STATUSES.map((status) => (
+                <button
+                  key={status}
+                  className={`status-option ${status === currentLead.status ? 'active' : ''}`}
+                  onClick={() => updateLeadStatus(currentLead.id, status)}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <button className="secondary-btn" onClick={() => { setLeadIndex((prev) => (prev + 1) % leads.length); setLeadStatusMenuOpen(false) }}>
             Следующий лид
           </button>
         </article>
@@ -865,7 +832,7 @@ function App() {
 
       <div className="money-actions">
         <button className="secondary-btn" onClick={() => setCsvSheetOpen(true)}>
-          CSV
+          Загрузить выписку Revolut
         </button>
       </div>
 
@@ -884,17 +851,13 @@ function App() {
       {l1DaysIdle > 10 ? (
         <div className="question-alert">
           <p>L1 не двигался {l1DaysIdle} дней. Что застряло?</p>
-          <textarea
-            value={l1AlertAnswer}
-            onChange={(event) => setL1AlertAnswer(event.target.value)}
-            placeholder="Коротко: что мешает?"
-          />
+          <textarea value={l1AlertAnswer} onChange={(event) => setL1AlertAnswer(event.target.value)} placeholder="Коротко: что мешает?" />
         </div>
       ) : null}
 
       <div className="checklist">
         {l1Items.map((item) => (
-          <label key={item.id} className="check-row">
+          <label key={item.id} className="check-row circle-check-row">
             <input type="checkbox" checked={item.done} onChange={() => toggleL1Item(item.id)} />
             <span>{item.title}</span>
           </label>
@@ -918,29 +881,17 @@ function App() {
             ← Все цели
           </button>
           <h2 className="section-title">{activeGoal.title}</h2>
-          {activeGoal.targetDate ? (
-            <p className="muted">
-              дедлайн: {activeGoal.targetDate} · {daysToGoal} дн.
-            </p>
-          ) : null}
+          {activeGoal.targetDate ? <p className="muted">дедлайн: {activeGoal.targetDate} · {daysToGoal} дн.</p> : null}
           <Progress value={progress} />
-          <p className="muted">
-            {doneCount}/{activeGoal.items.length} шагов выполнено
-          </p>
-
+          <p className="muted">{doneCount}/{activeGoal.items.length} шагов выполнено</p>
           <div className="checklist">
             {activeGoal.items.map((item) => (
               <label key={item.id} className="check-row">
-                <input
-                  type="checkbox"
-                  checked={item.done}
-                  onChange={() => toggleCustomGoalItem(activeGoal.id, item.id)}
-                />
+                <input type="checkbox" checked={item.done} onChange={() => toggleCustomGoalItem(activeGoal.id, item.id)} />
                 <span>{item.title}</span>
               </label>
             ))}
           </div>
-
           <button className="secondary-btn" onClick={() => openGoalStepSheet(activeGoal.id)}>
             + Добавить шаг
           </button>
@@ -956,11 +907,10 @@ function App() {
             + Цель
           </button>
         </div>
-
         {customGoals.length === 0 ? (
           <article className="goal-card empty">
             <p className="lead-name">Пока нет целей</p>
-            <p className="muted">Создайте первую цель с дедлайном и шагом.</p>
+            <p className="muted">Создайте цель с тегом и дедлайном.</p>
           </article>
         ) : (
           <div className="goals-list">
@@ -970,32 +920,17 @@ function App() {
               return (
                 <article key={goal.id} className="goal-card">
                   <div className="goal-card-header">
-                    <span className="tag-chip">{goal.tag || 'цель'}</span>
+                    <span className="tag-chip">{goal.tag || 'личное'}</span>
                     <div className="goal-order-actions">
-                      <button className="ghost-btn" onClick={() => moveGoal(index, -1)} disabled={index === 0}>
-                        ↑
-                      </button>
-                      <button
-                        className="ghost-btn"
-                        onClick={() => moveGoal(index, 1)}
-                        disabled={index === customGoals.length - 1}
-                      >
-                        ↓
-                      </button>
+                      <button className="ghost-btn" onClick={() => moveGoal(index, -1)} disabled={index === 0}>↑</button>
+                      <button className="ghost-btn" onClick={() => moveGoal(index, 1)} disabled={index === customGoals.length - 1}>↓</button>
                     </div>
                   </div>
                   <p className="lead-name">{goal.title}</p>
                   <p className="muted">{goal.targetDate ? `дедлайн: ${goal.targetDate}` : 'без дедлайна'}</p>
                   <Progress value={progress} />
-                  <p className="muted">
-                    {doneCount}/{goal.items.length} шагов
-                  </p>
-                  <button className="primary-btn" onClick={() => openGoalPage(goal.id)}>
-                    Открыть страницу цели
-                  </button>
-                  <button className="secondary-btn danger-btn" onClick={() => removeGoal(goal.id)}>
-                    Удалить цель
-                  </button>
+                  <button className="primary-btn" onClick={() => openGoalPage(goal.id)}>Открыть страницу цели</button>
+                  <button className="secondary-btn danger-btn" onClick={() => removeGoal(goal.id)}>Удалить цель</button>
                 </article>
               )
             })}
@@ -1016,30 +951,18 @@ function App() {
       {activeTab === 'goals' && renderGoalsTab()}
 
       <nav className="bottom-nav">
-        <button className={activeTab === 'now' ? 'active' : ''} onClick={() => setActiveTab('now')}>
-          Сейчас
-        </button>
-        <button className={activeTab === 'leads' ? 'active' : ''} onClick={() => setActiveTab('leads')}>
-          Лиды
-        </button>
-        <button className={activeTab === 'money' ? 'active' : ''} onClick={() => setActiveTab('money')}>
-          Деньги
-        </button>
-        <button className={activeTab === 'l1' ? 'active' : ''} onClick={() => setActiveTab('l1')}>
-          L1
-        </button>
-        <button className={activeTab === 'goals' ? 'active' : ''} onClick={() => setActiveTab('goals')}>
-          Цели
-        </button>
+        <button className={activeTab === 'now' ? 'active' : ''} onClick={() => setActiveTab('now')}>Сейчас</button>
+        <button className={activeTab === 'leads' ? 'active' : ''} onClick={() => setActiveTab('leads')}>Лиды</button>
+        <button className={activeTab === 'money' ? 'active' : ''} onClick={() => setActiveTab('money')}>Деньги</button>
+        <button className={activeTab === 'l1' ? 'active' : ''} onClick={() => setActiveTab('l1')}>L1</button>
+        <button className={activeTab === 'goals' ? 'active' : ''} onClick={() => setActiveTab('goals')}>Цели</button>
       </nav>
 
       <BottomSheet open={showTasksSheet} onClose={() => setShowTasksSheet(false)} title="Задачи на сегодня">
         <div className="tasks-sheet">
           {dailyPlan.tasks.map((task, index) => (
             <article key={task.id} className={`task-row ${index === 0 ? '' : 'done'}`}>
-              <span className="tag-chip" style={{ background: TAG_COLORS[task.tag] || '#173328' }}>
-                {task.tag}
-              </span>
+              <span className="tag-chip" style={{ background: TAG_COLORS[task.tag] || '#173328' }}>{task.tag}</span>
               <p>{task.action}</p>
             </article>
           ))}
@@ -1048,53 +971,42 @@ function App() {
 
       <BottomSheet open={skipSheetOpen} onClose={() => setSkipSheetOpen(false)} title="Что мешает?">
         <form className="stack" onSubmit={askClaudeOnSkip}>
-          <textarea
-            value={skipAnswer}
-            onChange={(event) => setSkipAnswer(event.target.value)}
-            placeholder="Что мешает начать?"
-            required
-          />
-          <button className="primary-btn" type="submit" disabled={skipLoading}>
-            {skipLoading ? 'Думаю…' : 'Спросить Claude'}
-          </button>
+          <textarea value={skipAnswer} onChange={(event) => setSkipAnswer(event.target.value)} placeholder="Что мешает начать?" required />
+          <button className="primary-btn" type="submit" disabled={skipLoading}>{skipLoading ? 'Думаю…' : 'Спросить Claude'}</button>
         </form>
         {skipReply ? (
           <div className="claude-reply">
             <p>{skipReply}</p>
             <p className="small-step">Меньший шаг: {skipStep}</p>
-            <button className="primary-btn" onClick={applySmallerStep}>
-              Взять меньший шаг
-            </button>
+            <button className="primary-btn" onClick={applySmallerStep}>Взять меньший шаг</button>
           </div>
         ) : null}
-        <button className="secondary-btn" onClick={skipTask}>
-          Пропустить и взять следующую задачу
-        </button>
+        <button className="secondary-btn" onClick={skipTask}>Пропустить и взять следующую задачу</button>
       </BottomSheet>
 
       <BottomSheet open={leadSheetOpen} onClose={() => setLeadSheetOpen(false)} title="Добавить лида">
         <form className="stack" onSubmit={addLead}>
           <input name="name" placeholder="Имя" required />
-          <input name="source" placeholder="Откуда" required />
+          <select name="source" defaultValue="Telegram" required>
+            {LEAD_SOURCES.map((source) => (
+              <option key={source} value={source}>{source}</option>
+            ))}
+          </select>
           <input name="date" type="date" defaultValue={dayKey()} required />
-          <button className="primary-btn" type="submit">
-            Сохранить
-          </button>
+          <button className="primary-btn" type="submit">Сохранить</button>
         </form>
       </BottomSheet>
 
       <BottomSheet open={paymentSheetOpen} onClose={() => setPaymentSheetOpen(false)} title="Добавить платёж">
         <form className="stack" onSubmit={addPayment}>
-          <input name="name" placeholder="Клиент / платёж" required />
-          <input name="amount" type="number" min="1" step="0.01" placeholder="Сумма" required />
+          <input name="name" placeholder="Имя клиента" required />
+          <input name="amount" type="number" min="1" step="0.01" placeholder="Сумма в $" required />
           <input name="date" type="date" defaultValue={dayKey()} required />
-          <button className="primary-btn" type="submit">
-            Сохранить
-          </button>
+          <button className="primary-btn" type="submit">Сохранить</button>
         </form>
       </BottomSheet>
 
-      <BottomSheet open={csvSheetOpen} onClose={() => setCsvSheetOpen(false)} title="Загрузка CSV Revolut">
+      <BottomSheet open={csvSheetOpen} onClose={() => setCsvSheetOpen(false)} title="Загрузить выписку Revolut">
         <div className="stack">
           <label className="file-label">
             Выбрать CSV
@@ -1107,39 +1019,34 @@ function App() {
       <BottomSheet open={l1SheetOpen} onClose={() => setL1SheetOpen(false)} title="Новый пункт L1">
         <form className="stack" onSubmit={addL1Item}>
           <input name="title" placeholder="Что добавить?" required />
-          <button className="primary-btn" type="submit">
-            Добавить
-          </button>
+          <button className="primary-btn" type="submit">Добавить</button>
         </form>
       </BottomSheet>
 
       <BottomSheet open={goalSheetOpen} onClose={() => setGoalSheetOpen(false)} title="Новая цель">
         <form className="stack" onSubmit={addCustomGoal}>
           <input name="title" placeholder="Название цели" required />
-          <input name="tag" placeholder="Тег (например: бизнес)" />
-          <input name="firstStep" placeholder="Первый шаг" required />
+          <select name="tag" defaultValue="личное">
+            {GOAL_TAGS.map((tag) => (
+              <option key={tag} value={tag}>{tag}</option>
+            ))}
+          </select>
           <input name="targetDate" type="date" />
-          <button className="primary-btn" type="submit">
-            Создать цель
-          </button>
+          <button className="primary-btn" type="submit">Создать цель</button>
         </form>
       </BottomSheet>
 
       <BottomSheet open={goalStepSheetOpen} onClose={() => setGoalStepSheetOpen(false)} title="Новый шаг цели">
         <form className="stack" onSubmit={addCustomGoalStep}>
           <input name="title" placeholder="Что сделать дальше?" required />
-          <button className="primary-btn" type="submit">
-            Добавить шаг
-          </button>
+          <button className="primary-btn" type="submit">Добавить шаг</button>
         </form>
       </BottomSheet>
 
       <div className={`timer-overlay ${timerOverlayVisible ? 'show' : ''}`} aria-hidden={!timerOverlayVisible}>
         <div className="timer-overlay-card">
           <p className={`overlay-time ${timerToneClass}`}>{formatSeconds(timerState.secondsLeft)}</p>
-          <button className="primary-btn overlay-done-btn" onClick={completeCurrentTask}>
-            Готово
-          </button>
+          <button className="primary-btn overlay-done-btn" onClick={completeCurrentTask}>Готово</button>
         </div>
       </div>
     </div>
