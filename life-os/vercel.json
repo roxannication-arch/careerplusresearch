@@ -1,7 +1,4 @@
 {
-  "functions": {
-    "api/*.js": {
-      "runtime": "@vercel/node"
-    }
-  }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite"
 }
