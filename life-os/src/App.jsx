@@ -296,7 +296,6 @@ function App() {
               }))
               .sort((a, b) => a.priority - b.priority)
               .slice(0, 5)
-              .map(({ priority, ...task }) => task)
           }
         }
       } catch {
