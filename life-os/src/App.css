@@ -5,17 +5,17 @@
 .app-shell {
   --accent: #00e5a0;
   min-height: 100dvh;
-  max-width: 560px;
+  max-width: 430px;
   margin: 0 auto;
   background: #0f0f0f;
   color: #fff;
-  padding: 16px 16px 112px;
+  padding: 20px 14px 100px;
   box-sizing: border-box;
 }
 
 .now-screen,
 .tab-screen {
-  min-height: calc(100dvh - 140px);
+  min-height: calc(100dvh - 130px);
   display: flex;
   flex-direction: column;
 }
@@ -32,13 +32,13 @@
 }
 
 .focus-card {
-  margin-top: 8px;
-  min-height: calc(100dvh - 180px);
-  border-radius: 24px;
-  padding: 20px;
+  margin-top: 6px;
+  min-height: calc(100dvh - 175px);
+  border-radius: 20px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .focus-card.completed {
@@ -49,30 +49,32 @@
 .tag-chip {
   align-self: flex-start;
   border-radius: 999px;
-  padding: 8px 12px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 700;
   color: #00e5a0;
 }
 
 .big-line {
   margin: 0;
-  font-size: 28px;
-  line-height: 1.3;
+  font-size: 37px;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
   font-weight: 700;
 }
 
 .timer-wrap {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .timer-value {
   margin: 0;
-  text-align: center;
-  font-size: 64px;
+  text-align: left;
+  font-size: 62px;
   font-weight: 700;
+  line-height: 1;
   color: #00e5a0;
 }
 
@@ -82,12 +84,6 @@
 
 .timer-value.is-red {
   color: #ef4444;
-}
-
-.timer-actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
 }
 
 button,
@@ -103,7 +99,7 @@ textarea,
 .ghost-btn,
 .tiny-link,
 .skip-link-btn {
-  border-radius: 14px;
+  border-radius: 12px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -114,7 +110,7 @@ textarea,
   background: var(--accent);
   color: #000;
   border: 1px solid transparent;
-  padding: 12px 16px;
+  padding: 12px 14px;
 }
 
 .secondary-btn {
@@ -122,14 +118,14 @@ textarea,
   background: #1c1c1c;
   color: #fff;
   border: 1px solid #1f1f1f;
-  padding: 12px 16px;
+  padding: 11px 14px;
 }
 
 .ghost-btn {
-  border: 1px solid #1f1f1f;
-  background: #0f0f0f;
-  color: #fff;
-  min-width: 40px;
+  border: 1px solid #2b2b2b;
+  background: #171717;
+  color: #b8b8b8;
+  min-width: 38px;
 }
 
 .skip-link-btn {
@@ -137,7 +133,7 @@ textarea,
   align-self: flex-start;
   background: transparent;
   border: none;
-  color: #888;
+  color: #9a9a9a;
   padding: 0;
 }
 
@@ -146,36 +142,37 @@ textarea,
   color: #888;
   border: none;
   text-align: left;
-  padding: 10px 0;
+  padding: 8px 0 0;
 }
 
 .section-title {
-  margin: 2px 0 10px;
+  margin: 0 0 8px;
   font-size: 30px;
   font-weight: 700;
+  line-height: 1.1;
 }
 
 .metric {
   margin: 0;
-  font-size: 42px;
+  font-size: 36px;
   font-weight: 700;
 }
 
 .money-hero {
   margin: 0;
-  font-size: 52px;
+  font-size: 46px;
   font-weight: 700;
 }
 
 .muted {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: #888;
   font-size: 16px;
 }
 
 .progress {
   margin: 12px 0 8px;
-  height: 14px;
+  height: 12px;
   border-radius: 999px;
   background: #2a2a2a;
   overflow: hidden;
@@ -189,32 +186,30 @@ textarea,
 
 .queue-wrap {
   border: 1px solid #1f1f1f;
-  border-radius: 16px;
-  background: #121212;
-  padding: 12px;
+  border-radius: 14px;
+  background: #151515;
+  padding: 10px;
 }
 
 .queue-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
 
 .task-row {
-  border-radius: 12px;
-  padding: 10px;
+  border-radius: 10px;
+  padding: 8px 10px;
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-}
-
-.task-row.collapsed .tag-chip {
-  margin-bottom: 6px;
 }
 
 .task-row p {
   margin: 0;
+  font-size: 15px;
+  line-height: 1.3;
 }
 
 .task-order-actions,
@@ -224,27 +219,28 @@ textarea,
 }
 
 .lead-card {
-  margin-top: 16px;
-  border-radius: 20px;
-  padding: 18px;
+  margin-top: 14px;
+  border-radius: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.lead-card.stale {
-  border-color: #f59e0b;
+  gap: 9px;
 }
 
 .lead-card.empty {
-  min-height: 180px;
+  min-height: 170px;
   justify-content: center;
+}
+
+.lead-card.stale {
+  border-color: #c0862a;
 }
 
 .lead-name {
   margin: 0;
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 700;
+  line-height: 1.2;
 }
 
 .status-line {
@@ -254,26 +250,26 @@ textarea,
 .status-chip-btn {
   width: auto;
   align-self: flex-start;
-  border: 1px solid #1f1f1f;
+  border: 1px solid #2b2b2b;
   background: #151515;
   color: #fff;
   border-radius: 999px;
-  padding: 10px 14px;
+  padding: 10px 13px;
 }
 
 .status-menu {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 7px;
 }
 
 .status-menu-btn {
   width: auto;
-  border: 1px solid #1f1f1f;
-  background: #151515;
+  border: 1px solid #2c2c2c;
+  background: #171717;
   color: #fff;
-  border-radius: 12px;
-  padding: 10px 12px;
+  border-radius: 10px;
+  padding: 10px 11px;
 }
 
 .status-menu-btn.active {
@@ -282,16 +278,16 @@ textarea,
 }
 
 .payments-list {
-  margin-top: 14px;
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   padding-bottom: 92px;
 }
 
 .payment-item {
-  border-radius: 16px;
-  padding: 12px;
+  border-radius: 14px;
+  padding: 10px 11px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -299,35 +295,39 @@ textarea,
 
 .payment-amount {
   margin: 0;
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 700;
 }
 
 .money-actions {
-  margin-top: 12px;
-  margin-bottom: 100px;
+  margin-top: 10px;
+  margin-bottom: 92px;
 }
 
 .checklist {
-  margin-top: 14px;
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
   padding-bottom: 24px;
 }
 
 .check-row {
-  border-radius: 14px;
-  padding: 10px 12px;
+  border-radius: 12px;
+  padding: 9px 11px;
   display: grid;
-  grid-template-columns: 28px 1fr;
-  gap: 12px;
+  grid-template-columns: 26px 1fr;
+  gap: 10px;
   align-items: center;
 }
 
+.check-row span {
+  font-size: 15px;
+}
+
 .round-check {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border: 2px solid #444;
   border-radius: 999px;
   background: transparent;
@@ -335,7 +335,7 @@ textarea,
   align-items: center;
   justify-content: center;
   color: transparent;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -353,19 +353,19 @@ textarea,
 }
 
 .goals-list {
-  margin-top: 16px;
+  margin-top: 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   padding-bottom: 104px;
 }
 
 .goal-card {
-  border-radius: 16px;
-  padding: 12px;
+  border-radius: 14px;
+  padding: 11px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 9px;
 }
 
 .goal-card-header {
@@ -382,39 +382,39 @@ textarea,
 .inline-btn,
 .back-btn {
   width: auto;
-  padding-inline: 12px;
+  padding-inline: 11px;
 }
 
 .question-alert {
-  margin-top: 14px;
+  margin-top: 12px;
   border: 1px solid #4a3717;
-  border-radius: 14px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: 11px;
   background: #1b140c;
 }
 
 .question-alert textarea {
   width: 100%;
   border: 1px solid #4a3717;
-  background: #101010;
+  background: #121212;
   color: #fff;
-  border-radius: 12px;
-  padding: 12px;
+  border-radius: 10px;
+  padding: 11px;
   font-size: 16px;
   box-sizing: border-box;
 }
 
 .fab {
   position: fixed;
-  right: max(16px, calc((100vw - 560px) / 2 + 16px));
-  bottom: 92px;
-  width: 56px;
-  min-height: 56px;
+  right: max(16px, calc((100vw - 430px) / 2 + 16px));
+  bottom: 88px;
+  width: 54px;
+  min-height: 54px;
   border-radius: 999px;
   border: none;
   background: #00e5a0;
   color: #000;
-  font-size: 34px;
+  font-size: 31px;
 }
 
 .bottom-nav {
@@ -422,7 +422,7 @@ textarea,
   left: 50%;
   transform: translateX(-50%);
   bottom: 0;
-  width: min(560px, 100vw);
+  width: min(430px, 100vw);
   background: #0f0f0f;
   border-top: 1px solid #1f1f1f;
   display: grid;
@@ -434,11 +434,11 @@ textarea,
 
 .bottom-nav button {
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   background: transparent;
   color: #888;
-  font-size: 16px;
-  min-height: 50px;
+  font-size: 14px;
+  min-height: 45px;
 }
 
 .bottom-nav button.active {
@@ -451,7 +451,7 @@ textarea,
   inset: 0;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.2s ease;
 }
 
 .sheet-wrap.open {
@@ -471,15 +471,15 @@ textarea,
   left: 0;
   right: 0;
   bottom: 0;
-  max-width: 560px;
+  max-width: 430px;
   margin: 0 auto;
-  background: #141414;
+  background: #151515;
   border: 1px solid #1f1f1f;
-  border-top-left-radius: 20px;
-  border-top-right-radius: 20px;
-  padding: 16px;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  padding: 14px;
   transform: translateY(100%);
-  transition: transform 0.25s ease;
+  transition: transform 0.22s ease;
   max-height: 88dvh;
   overflow-y: auto;
 }
@@ -497,40 +497,40 @@ textarea,
 
 .sheet-header h3 {
   margin: 0;
-  font-size: 24px;
+  font-size: 22px;
 }
 
 .sheet-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-bottom: 12px;
+  gap: 11px;
+  padding-bottom: 10px;
 }
 
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 9px;
 }
 
 .stack input,
 .stack textarea,
 .stack select {
   width: 100%;
-  border: 1px solid #1f1f1f;
+  border: 1px solid #2a2a2a;
   background: #1c1c1c;
   color: #fff;
-  border-radius: 12px;
-  padding: 12px;
+  border-radius: 10px;
+  padding: 11px;
   font-size: 16px;
   box-sizing: border-box;
 }
 
 .claude-reply {
-  border: 1px solid #1f1f1f;
-  border-radius: 12px;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
   background: #1c1c1c;
-  padding: 12px;
+  padding: 11px;
 }
 
 .small-step {
@@ -539,8 +539,8 @@ textarea,
 }
 
 .file-label {
-  border: 1px dashed #1f1f1f;
-  border-radius: 12px;
+  border: 1px dashed #2a2a2a;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -559,11 +559,11 @@ textarea,
   position: fixed;
   inset: 0;
   background: rgba(0, 229, 160, 0);
-  transition: background 0.35s ease;
+  transition: background 0.28s ease;
 }
 
 .reward-overlay.show {
-  background: rgba(0, 229, 160, 0.2);
+  background: rgba(0, 229, 160, 0.16);
 }
 
 .timer-overlay {
@@ -582,20 +582,21 @@ textarea,
 }
 
 .timer-overlay-card {
-  width: min(460px, 100%);
+  width: min(380px, 100%);
   border: 1px solid #1f1f1f;
   background: #1c1c1c;
-  border-radius: 20px;
-  padding: 28px 20px;
+  border-radius: 18px;
+  padding: 22px 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .overlay-time {
   margin: 0;
-  font-size: 82px;
+  font-size: 74px;
+  line-height: 1;
   font-weight: 700;
 }
 
@@ -612,15 +613,20 @@ textarea,
 }
 
 .overlay-done-btn {
-  max-width: 320px;
+  max-width: 300px;
 }
 
 @media (min-width: 768px) {
   .app-shell {
-    padding: 22px 20px 112px;
+    padding: 24px 20px 112px;
+    max-width: 520px;
   }
 
-  .timer-actions {
-    grid-template-columns: 1fr 1fr;
+  .bottom-nav {
+    width: min(520px, 100vw);
+  }
+
+  .sheet {
+    max-width: 520px;
   }
 }
