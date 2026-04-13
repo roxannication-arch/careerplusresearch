@@ -19,13 +19,15 @@ const TAG_COLORS = {
   деньги: '#dbf8ef',
   клиент: '#d5f4ea',
   контент: '#ccefe3',
+  цель: '#d6f3ea',
 }
 
 const localKey = {
   leads: 'lifeos:leads',
   payments: 'lifeos:payments',
   l1Items: 'lifeos:l1-items',
-  goalProjects: 'lifeos:goal-projects',
+  customGoals: 'lifeos:custom-goals',
+  goalProjectsLegacy: 'lifeos:goal-projects',
   dailyPlan: 'lifeos:daily-plan',
   timer: 'lifeos:timer',
   l1Activity: 'lifeos:l1-activity',
@@ -93,15 +95,13 @@ const fallbackTasks = (snapshot) => {
     })
   }
 
-  const customProject = (snapshot.goalProjects || []).find((project) =>
-    (project.items || []).some((item) => !item.done),
-  )
-  if (customProject) {
-    const nextStep = customProject.items.find((item) => !item.done)
+  const customGoal = (snapshot.customGoals || []).find((goal) => (goal.items || []).some((item) => !item.done))
+  if (customGoal) {
+    const nextStep = customGoal.items.find((item) => !item.done)
     tasks.push({
       id: uid(),
-      tag: 'L1',
-      action: `${customProject.title}: ${nextStep.title}`,
+      tag: 'цель',
+      action: `${customGoal.title}: ${nextStep.title}`,
       minutes: 25,
     })
   }
@@ -155,7 +155,8 @@ function App() {
   const [leadIndex, setLeadIndex] = useState(0)
   const [payments, setPayments] = useState([])
   const [l1Items, setL1Items] = useState([])
-  const [goalProjects, setGoalProjects] = useState([])
+  const [customGoals, setCustomGoals] = useState([])
+  const [activeGoalId, setActiveGoalId] = useState('')
   const [dailyPlan, setDailyPlan] = useState({ date: '', tasks: [], currentIndex: 0 })
   const [timerState, setTimerState] = useState({
     running: false,
@@ -176,9 +177,8 @@ function App() {
   const [paymentSheetOpen, setPaymentSheetOpen] = useState(false)
   const [csvSheetOpen, setCsvSheetOpen] = useState(false)
   const [l1SheetOpen, setL1SheetOpen] = useState(false)
-  const [projectSheetOpen, setProjectSheetOpen] = useState(false)
-  const [projectStepSheetOpen, setProjectStepSheetOpen] = useState(false)
-  const [activeProjectId, setActiveProjectId] = useState('')
+  const [goalSheetOpen, setGoalSheetOpen] = useState(false)
+  const [goalStepSheetOpen, setGoalStepSheetOpen] = useState(false)
   const [csvMessage, setCsvMessage] = useState('')
   const [l1LastActivity, setL1LastActivity] = useState(dayKey())
   const [l1AlertAnswer, setL1AlertAnswer] = useState('')
@@ -188,6 +188,7 @@ function App() {
   const currentTask = dailyPlan.tasks[dailyPlan.currentIndex] || null
   const remainingTasks = Math.max(0, dailyPlan.tasks.length - dailyPlan.currentIndex - 1)
   const l1DaysIdle = daysBetween(l1LastActivity)
+  const activeGoal = customGoals.find((goal) => goal.id === activeGoalId) || null
 
   const l1Deadline = new Date('2026-10-01T00:00:00')
   const countdownDays = Math.max(0, Math.ceil((l1Deadline.getTime() - Date.now()) / 86400000))
@@ -224,7 +225,8 @@ function App() {
     const savedLeads = load(localKey.leads, [])
     const savedPayments = load(localKey.payments, [])
     const savedL1 = load(localKey.l1Items, null)
-    const savedGoalProjects = load(localKey.goalProjects, [])
+    const savedCustomGoals = load(localKey.customGoals, null)
+    const savedLegacyProjects = load(localKey.goalProjectsLegacy, [])
     const savedPlan = load(localKey.dailyPlan, null)
     const savedTimer = load(localKey.timer, null)
     const savedL1Activity = load(localKey.l1Activity, dayKey())
@@ -237,7 +239,7 @@ function App() {
         ? savedL1
         : DEFAULT_L1_ITEMS.map((title) => ({ id: uid(), title, done: false, createdAt: new Date().toISOString() })),
     )
-    setGoalProjects(savedGoalProjects || [])
+    setCustomGoals(Array.isArray(savedCustomGoals) ? savedCustomGoals : savedLegacyProjects || [])
     setDailyPlan(savedPlan || { date: '', tasks: [], currentIndex: 0 })
     setTimerState(
       savedTimer || {
@@ -270,8 +272,8 @@ function App() {
 
   useEffect(() => {
     if (!loaded) return
-    save(localKey.goalProjects, goalProjects)
-  }, [goalProjects, loaded])
+    save(localKey.customGoals, customGoals)
+  }, [customGoals, loaded])
 
   useEffect(() => {
     if (!loaded) return
@@ -294,12 +296,18 @@ function App() {
   }, [l1AlertAnswer, loaded])
 
   useEffect(() => {
+    if (!activeGoalId) return
+    if (customGoals.some((goal) => goal.id === activeGoalId)) return
+    setActiveGoalId('')
+  }, [activeGoalId, customGoals])
+
+  useEffect(() => {
     if (!loaded) return
     if (dailyPlan.date === dayKey() && dailyPlan.tasks.length > 0) return
 
     const generate = async () => {
       setLoadingTasks(true)
-      const snapshot = { leads, payments, l1Items, goalProjects }
+      const snapshot = { leads, payments, l1Items, customGoals }
       let tasks = fallbackTasks(snapshot)
       try {
         const response = await fetch('/api/claude', {
@@ -337,7 +345,7 @@ function App() {
     }
 
     generate()
-  }, [dailyPlan.date, dailyPlan.tasks.length, goalProjects, l1Items, leads, loaded, payments])
+  }, [customGoals, dailyPlan.date, dailyPlan.tasks.length, l1Items, leads, loaded, payments])
 
   useEffect(() => {
     if (!timerState.running || !timerState.endAt) return undefined
@@ -595,68 +603,71 @@ function App() {
     setL1SheetOpen(false)
   }
 
-  const toggleGoalProjectItem = (projectId, itemId) => {
-    setGoalProjects((prev) =>
-      prev.map((project) => {
-        if (project.id !== projectId) return project
+  const toggleCustomGoalItem = (goalId, itemId) => {
+    setCustomGoals((prev) =>
+      prev.map((goal) => {
+        if (goal.id !== goalId) return goal
         return {
-          ...project,
-          items: project.items.map((item) =>
+          ...goal,
+          items: goal.items.map((item) =>
             item.id === itemId ? { ...item, done: !item.done, updatedAt: new Date().toISOString() } : item,
           ),
         }
       }),
     )
-    setL1LastActivity(dayKey())
     triggerReward()
   }
 
-  const addGoalProject = (event) => {
+  const addCustomGoal = (event) => {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     const title = String(form.get('title') || '').trim()
     const firstStep = String(form.get('firstStep') || '').trim()
+    const targetDate = String(form.get('targetDate') || '').trim()
     if (!title || !firstStep) return
 
-    setGoalProjects((prev) => [
+    setCustomGoals((prev) => [
       ...prev,
       {
         id: uid(),
         title,
+        targetDate: targetDate || null,
         createdAt: new Date().toISOString(),
         items: [{ id: uid(), title: firstStep, done: false, createdAt: new Date().toISOString() }],
       },
     ])
-    setL1LastActivity(dayKey())
     triggerReward()
-    setProjectSheetOpen(false)
+    setGoalSheetOpen(false)
   }
 
-  const openProjectStepSheet = (projectId) => {
-    setActiveProjectId(projectId)
-    setProjectStepSheetOpen(true)
+  const openGoalStepSheet = (goalId) => {
+    setActiveGoalId(goalId)
+    setGoalStepSheetOpen(true)
   }
 
-  const addGoalProjectStep = (event) => {
+  const addCustomGoalStep = (event) => {
     event.preventDefault()
-    if (!activeProjectId) return
+    if (!activeGoalId) return
     const form = new FormData(event.currentTarget)
     const title = String(form.get('title') || '').trim()
     if (!title) return
 
-    setGoalProjects((prev) =>
-      prev.map((project) => {
-        if (project.id !== activeProjectId) return project
+    setCustomGoals((prev) =>
+      prev.map((goal) => {
+        if (goal.id !== activeGoalId) return goal
         return {
-          ...project,
-          items: [...project.items, { id: uid(), title, done: false, createdAt: new Date().toISOString() }],
+          ...goal,
+          items: [...goal.items, { id: uid(), title, done: false, createdAt: new Date().toISOString() }],
         }
       }),
     )
-    setL1LastActivity(dayKey())
     triggerReward()
-    setProjectStepSheetOpen(false)
-    setActiveProjectId('')
+    setGoalStepSheetOpen(false)
+  }
+
+  const openGoalPage = (goalId) => {
+    setActiveGoalId(goalId)
+    setActiveTab('goals')
   }
 
   const averageDeal = thisMonthIncome > 0 && monthDeals > 0 ? thisMonthIncome / monthDeals : 1500
@@ -814,56 +825,86 @@ function App() {
         ))}
       </div>
 
-      <section className="goal-projects">
-        <div className="goal-projects-header">
-          <h3>Проекты под цель</h3>
-          <button className="secondary-btn inline-btn" onClick={() => setProjectSheetOpen(true)}>
-            + Проект
-          </button>
-        </div>
-
-        {goalProjects.length === 0 ? (
-          <article className="goal-project-card empty">
-            <p className="lead-name">Пока нет доп. проектов</p>
-            <p className="muted">Добавьте проект под цель и ведите его шагами.</p>
-          </article>
-        ) : (
-          goalProjects.map((project) => {
-            const doneCount = project.items.filter((item) => item.done).length
-            const progress = project.items.length ? (doneCount / project.items.length) * 100 : 0
-            return (
-              <article key={project.id} className="goal-project-card">
-                <p className="lead-name">{project.title}</p>
-                <p className="muted">
-                  {doneCount}/{project.items.length} шагов
-                </p>
-                <Progress value={progress} />
-                <div className="project-items">
-                  {project.items.map((item) => (
-                    <label key={item.id} className="check-row">
-                      <input
-                        type="checkbox"
-                        checked={item.done}
-                        onChange={() => toggleGoalProjectItem(project.id, item.id)}
-                      />
-                      <span>{item.title}</span>
-                    </label>
-                  ))}
-                </div>
-                <button className="secondary-btn" onClick={() => openProjectStepSheet(project.id)}>
-                  + Добавить шаг
-                </button>
-              </article>
-            )
-          })
-        )}
-      </section>
-
       <button className="fab" onClick={() => setL1SheetOpen(true)} aria-label="Добавить пункт L1">
         +
       </button>
     </section>
   )
+
+  const renderGoalsTab = () => {
+    if (activeGoal) {
+      const doneCount = activeGoal.items.filter((item) => item.done).length
+      const progress = activeGoal.items.length ? (doneCount / activeGoal.items.length) * 100 : 0
+      const daysToGoal = activeGoal.targetDate ? daysBetween(dayKey(), activeGoal.targetDate) : null
+      return (
+        <section className="tab-screen">
+          <button className="secondary-btn back-btn" onClick={() => setActiveGoalId('')}>
+            ← Все цели
+          </button>
+          <h2 className="section-title">{activeGoal.title}</h2>
+          {activeGoal.targetDate ? (
+            <p className="muted">
+              дедлайн: {activeGoal.targetDate} · {daysToGoal} дн.
+            </p>
+          ) : null}
+          <Progress value={progress} />
+          <p className="muted">
+            {doneCount}/{activeGoal.items.length} шагов выполнено
+          </p>
+
+          <div className="checklist">
+            {activeGoal.items.map((item) => (
+              <label key={item.id} className="check-row">
+                <input type="checkbox" checked={item.done} onChange={() => toggleCustomGoalItem(activeGoal.id, item.id)} />
+                <span>{item.title}</span>
+              </label>
+            ))}
+          </div>
+
+          <button className="secondary-btn" onClick={() => openGoalStepSheet(activeGoal.id)}>
+            + Добавить шаг
+          </button>
+        </section>
+      )
+    }
+
+    return (
+      <section className="tab-screen">
+        <div className="goal-projects-header">
+          <h2 className="section-title">Цели</h2>
+          <button className="secondary-btn inline-btn" onClick={() => setGoalSheetOpen(true)}>
+            + Цель
+          </button>
+        </div>
+
+        {customGoals.length === 0 ? (
+          <article className="goal-project-card empty">
+            <p className="lead-name">Пока нет целей</p>
+            <p className="muted">Создайте цель, и для неё появится отдельная страница.</p>
+          </article>
+        ) : (
+          <div className="goal-projects">
+            {customGoals.map((goal) => {
+              const doneCount = goal.items.filter((item) => item.done).length
+              const progress = goal.items.length ? (doneCount / goal.items.length) * 100 : 0
+              return (
+                <article key={goal.id} className="goal-project-card">
+                  <p className="lead-name">{goal.title}</p>
+                  <p className="muted">
+                    {doneCount}/{goal.items.length} шагов
+                  </p>
+                  <Progress value={progress} />
+                  <button className="primary-btn" onClick={() => openGoalPage(goal.id)}>
+                    Открыть страницу цели
+                  </button>
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </section>
+    )
+  }
 
   return (
     <div className="app-shell" style={{ '--accent': ACCENT }}>
@@ -873,6 +914,7 @@ function App() {
       {activeTab === 'leads' && renderLeadsTab()}
       {activeTab === 'money' && renderMoneyTab()}
       {activeTab === 'l1' && renderL1Tab()}
+      {activeTab === 'goals' && renderGoalsTab()}
 
       <nav className="bottom-nav">
         <button className={activeTab === 'now' ? 'active' : ''} onClick={() => setActiveTab('now')}>
@@ -886,6 +928,9 @@ function App() {
         </button>
         <button className={activeTab === 'l1' ? 'active' : ''} onClick={() => setActiveTab('l1')}>
           L1
+        </button>
+        <button className={activeTab === 'goals' ? 'active' : ''} onClick={() => setActiveTab('goals')}>
+          Цели
         </button>
       </nav>
 
@@ -969,25 +1014,19 @@ function App() {
         </form>
       </BottomSheet>
 
-      <BottomSheet open={projectSheetOpen} onClose={() => setProjectSheetOpen(false)} title="Новый проект под цель">
-        <form className="stack" onSubmit={addGoalProject}>
-          <input name="title" placeholder="Название проекта" required />
+      <BottomSheet open={goalSheetOpen} onClose={() => setGoalSheetOpen(false)} title="Новая цель">
+        <form className="stack" onSubmit={addCustomGoal}>
+          <input name="title" placeholder="Название цели" required />
           <input name="firstStep" placeholder="Первый шаг" required />
+          <input name="targetDate" type="date" />
           <button className="primary-btn" type="submit">
-            Добавить проект
+            Создать цель
           </button>
         </form>
       </BottomSheet>
 
-      <BottomSheet
-        open={projectStepSheetOpen}
-        onClose={() => {
-          setProjectStepSheetOpen(false)
-          setActiveProjectId('')
-        }}
-        title="Новый шаг проекта"
-      >
-        <form className="stack" onSubmit={addGoalProjectStep}>
+      <BottomSheet open={goalStepSheetOpen} onClose={() => setGoalStepSheetOpen(false)} title="Новый шаг цели">
+        <form className="stack" onSubmit={addCustomGoalStep}>
           <input name="title" placeholder="Что сделать дальше?" required />
           <button className="primary-btn" type="submit">
             Добавить шаг

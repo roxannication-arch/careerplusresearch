@@ -282,6 +282,15 @@ textarea,
   font-size: 15px;
 }
 
+.back-btn {
+  width: auto;
+  align-self: flex-start;
+  padding-inline: 12px;
+  min-height: 42px;
+  font-size: 15px;
+  margin-top: 4px;
+}
+
 .goal-project-card {
   border: 1px solid #d9ece6;
   border-radius: 16px;
@@ -349,7 +358,7 @@ textarea,
   background: #fff;
   border-top: 1px solid #e6efe9;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   padding: 8px;
   box-sizing: border-box;
   gap: 6px;
