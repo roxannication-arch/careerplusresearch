@@ -17,8 +17,8 @@ interface MonthSelectorProps {
 
 export function MonthSelector({ selectedMonth, monthOptions, onChange }: MonthSelectorProps) {
   return (
-    <div className="inline-flex items-center gap-2">
-      <p className="text-sm text-muted-foreground">Месяц:</p>
+    <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+      <p className="text-sm font-medium text-slate-500">Месяц:</p>
       <Select
         value={selectedMonth}
         onValueChange={(value) => {

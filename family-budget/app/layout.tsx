@@ -12,7 +12,7 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Семейный бюджет",
+  title: "Семейный бюджет · UI v3",
   description: "Планирование доходов, трат и покетов",
   applicationName: "Семейный бюджет",
   appleWebApp: {
