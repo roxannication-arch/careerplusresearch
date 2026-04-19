@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,12 +36,9 @@ export function TransactionForm({ categories, onSubmit }: TransactionFormProps) 
   const [note, setNote] = useState("");
 
   const hasCategories = categories.length > 0;
-
-  useEffect(() => {
-    if (!categories.some((item) => item.id === categoryId)) {
-      setCategoryId(categories[0]?.id ?? "");
-    }
-  }, [categories, categoryId]);
+  const selectedCategoryId = categories.some((item) => item.id === categoryId)
+    ? categoryId
+    : firstCategory;
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -70,8 +67,8 @@ export function TransactionForm({ categories, onSubmit }: TransactionFormProps) 
           </SelectContent>
         </Select>
         <Select
-          value={categoryId}
-          onValueChange={setCategoryId}
+          value={selectedCategoryId}
+          onValueChange={(value) => setCategoryId(value ?? "")}
           disabled={!hasCategories}
         >
           <SelectTrigger className="w-full">
@@ -97,13 +94,13 @@ export function TransactionForm({ categories, onSubmit }: TransactionFormProps) 
         <Button
           onClick={() => {
             const parsed = Number.parseFloat(amount);
-            if (!Number.isFinite(parsed) || parsed <= 0 || !categoryId || !hasCategories) {
+            if (!Number.isFinite(parsed) || parsed <= 0 || !selectedCategoryId || !hasCategories) {
               return;
             }
             onSubmit({
               amount: parsed,
               currency,
-              categoryId,
+              categoryId: selectedCategoryId,
               date,
               note,
             });

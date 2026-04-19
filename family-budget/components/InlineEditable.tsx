@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyboardEvent, useEffect, useRef, useState } from "react";
+import { KeyboardEvent, useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -25,21 +25,9 @@ export function InlineEditable({
   disabled,
 }: InlineEditableProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState(value === null ? "" : String(value));
+  const initialValue = value === null ? "" : String(value);
+  const [draft, setDraft] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (!isEditing) {
-      setDraft(value === null ? "" : String(value));
-    }
-  }, [value, isEditing]);
-
-  useEffect(() => {
-    if (isEditing) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
-  }, [isEditing]);
 
   const commit = () => {
     if (type === "number") {
@@ -69,13 +57,18 @@ export function InlineEditable({
   };
 
   if (!isEditing) {
-    const hasValue = value !== null && String(value).trim().length > 0;
+    const hasValue = initialValue.trim().length > 0;
     return (
       <button
         type="button"
         onClick={() => {
           if (!disabled) {
+            setDraft(initialValue);
             setIsEditing(true);
+            queueMicrotask(() => {
+              inputRef.current?.focus();
+              inputRef.current?.select();
+            });
           }
         }}
         disabled={disabled}

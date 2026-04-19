@@ -19,7 +19,14 @@ export function MonthSelector({ selectedMonth, monthOptions, onChange }: MonthSe
   return (
     <div className="inline-flex items-center gap-2">
       <p className="text-sm text-muted-foreground">Месяц:</p>
-      <Select value={selectedMonth} onValueChange={onChange}>
+      <Select
+        value={selectedMonth}
+        onValueChange={(value) => {
+          if (value) {
+            onChange(value);
+          }
+        }}
+      >
         <SelectTrigger className="min-w-52 bg-white">
           <SelectValue />
         </SelectTrigger>

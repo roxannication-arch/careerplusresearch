@@ -7,9 +7,9 @@ export interface BudgetItem {
   currency: Currency;
 }
 
-export interface IncomeItem extends BudgetItem {}
+export type IncomeItem = BudgetItem;
 
-export interface ExpenseItem extends BudgetItem {}
+export type ExpenseItem = BudgetItem;
 
 export interface Pocket {
   id: string;

@@ -59,7 +59,10 @@ export default function TransactionsPage() {
           <CardTitle>Фильтры транзакций</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-3">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <Select
+            value={categoryFilter}
+            onValueChange={(value) => setCategoryFilter(value ?? "all")}
+          >
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>

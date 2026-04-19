@@ -52,7 +52,7 @@ export default function PocketsPage() {
               <SelectItem value="USD">USD</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={color} onValueChange={setColor}>
+          <Select value={color} onValueChange={(value) => setColor(value ?? pocketColors[0])}>
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>

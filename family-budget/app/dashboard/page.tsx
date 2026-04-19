@@ -18,6 +18,27 @@ import { useBudget } from "@/components/BudgetProvider";
 
 const chartPalette = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#0ea5e9"];
 
+function tooltipFormatter(value: unknown) {
+  if (typeof value === "number") {
+    return formatRub(value);
+  }
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? formatRub(parsed) : value;
+  }
+  if (Array.isArray(value) && value.length > 0) {
+    const first = value[0];
+    if (typeof first === "number") {
+      return formatRub(first);
+    }
+    if (typeof first === "string") {
+      const parsed = Number.parseFloat(first);
+      return Number.isFinite(parsed) ? formatRub(parsed) : first;
+    }
+  }
+  return "—";
+}
+
 export default function DashboardPage() {
   const { monthData, addFundsToPocket, updatePocket, deletePocket } = useBudget();
   const income = useMemo(() => calculateIncomeTotals(monthData), [monthData]);
@@ -56,7 +77,7 @@ export default function DashboardPage() {
           <CardContent className="h-72">
             {chartData.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Пока нет категорий с суммами. Заполните раздел "Бюджет".
+                Пока нет категорий с суммами. Заполните раздел &quot;Бюджет&quot;.
               </p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -74,7 +95,7 @@ export default function DashboardPage() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => formatRub(value)}
+                    formatter={tooltipFormatter}
                     contentStyle={{ borderRadius: "12px", borderColor: "#e2e8f0" }}
                   />
                 </PieChart>
@@ -96,7 +117,7 @@ export default function DashboardPage() {
                   <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-20} textAnchor="end" height={56} />
                   <YAxis tickFormatter={(value) => `${Math.round(value / 1000)}k`} />
                   <Tooltip
-                    formatter={(value: number) => formatRub(value)}
+                    formatter={tooltipFormatter}
                     contentStyle={{ borderRadius: "12px", borderColor: "#e2e8f0" }}
                   />
                   <Bar dataKey="plannedRub" name="План" fill="#6366f1" radius={[8, 8, 0, 0]} />
@@ -114,7 +135,9 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           {monthData.pockets.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Покетов пока нет. Создайте их на вкладке "Покеты".</p>
+            <p className="text-sm text-muted-foreground">
+              Покетов пока нет. Создайте их на вкладке &quot;Покеты&quot;.
+            </p>
           ) : (
             <div className="grid gap-3 lg:grid-cols-2">
               {monthData.pockets.map((pocket) => (
