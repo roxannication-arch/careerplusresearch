@@ -122,8 +122,12 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-slate-50 text-slate-900;
+    @apply bg-slate-100 text-slate-900;
     font-family: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background-image:
+      radial-gradient(circle at 15% -10%, rgba(59, 130, 246, 0.1), transparent 34%),
+      radial-gradient(circle at 85% -20%, rgba(99, 102, 241, 0.11), transparent 36%);
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;

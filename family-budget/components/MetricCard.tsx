@@ -20,15 +20,17 @@ const toneClasses: Record<NonNullable<MetricCardProps["tone"]>, string> = {
 
 export function MetricCard({ title, rubValue, usdValue, tone = "default" }: MetricCardProps) {
   return (
-    <Card className="bg-white">
-      <CardHeader>
-        <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
+    <Card className="bg-white/95 backdrop-blur">
+      <CardHeader className="pb-0">
+        <CardTitle className="text-xs font-semibold tracking-[0.1em] uppercase text-slate-500">
+          {title}
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-1">
-        <p className={cn("text-3xl font-semibold tracking-tight", toneClasses[tone])}>
+      <CardContent className="space-y-1 pt-2">
+        <p className={cn("text-2xl sm:text-3xl font-semibold tracking-tight", toneClasses[tone])}>
           {formatRub(rubValue)}
         </p>
-        <p className="text-sm text-muted-foreground">{formatUsd(usdValue)}</p>
+        <p className="text-xs font-medium text-slate-500">{formatUsd(usdValue)}</p>
       </CardContent>
     </Card>
   );

@@ -10,16 +10,16 @@ export function AppFrame({ children }: { children: ReactNode }) {
   const { selectedMonth, monthOptions, setSelectedMonth } = useBudget();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 md:flex">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#f8fbff_0%,_#f1f5f9_42%,_#eef2ff_100%)] text-slate-900 md:flex">
       <Sidebar />
       <main className="flex-1">
-        <header className="border-b border-slate-200 bg-white px-4 py-4 md:px-8">
+        <header className="sticky top-0 z-20 border-b border-white/80 bg-white/75 px-4 py-4 backdrop-blur md:px-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
                 Планирование и учет
               </p>
-              <h2 className="text-lg font-semibold">Семейный бюджет</h2>
+              <h2 className="text-xl font-semibold tracking-tight">Семейный бюджет</h2>
             </div>
             <MonthSelector
               selectedMonth={selectedMonth}
@@ -28,7 +28,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
             />
           </div>
         </header>
-        <section className="px-4 py-5 md:px-8 md:py-6">{children}</section>
+        <section className="px-4 py-5 md:px-8 md:py-7">{children}</section>
       </main>
     </div>
   );

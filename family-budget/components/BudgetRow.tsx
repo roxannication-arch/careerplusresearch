@@ -42,12 +42,12 @@ export function BudgetRow({
   readonly,
 }: BudgetRowProps) {
   return (
-    <div className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[1.3fr_0.8fr_0.5fr_0.8fr_auto] md:items-center">
+    <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200/80 bg-white/95 p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.04)] md:grid-cols-[1.3fr_0.8fr_0.5fr_0.8fr_auto] md:items-center">
       <InlineEditable
         value={name}
         onCommit={(value) => onNameChange(typeof value === "string" ? value : "")}
         placeholder={namePlaceholder}
-        className="h-8"
+        className="h-9"
         disabled={readonly}
       />
       <InlineEditable
@@ -55,7 +55,7 @@ export function BudgetRow({
         value={amount}
         onCommit={(value) => onAmountChange(typeof value === "number" ? value : null)}
         placeholder={amountPlaceholder}
-        className="h-8"
+        className="h-9"
         disabled={readonly}
       />
       <Select
