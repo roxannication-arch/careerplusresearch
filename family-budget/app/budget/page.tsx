@@ -12,7 +12,7 @@ import { calculateIncomeTotals, calculatePlannedExpenseTotals } from "@/lib/summ
 import { IncomeItem } from "@/lib/types";
 
 function ownerLabel(owner: IncomeItem["owner"]) {
-  return owner === "milena" ? "Милена" : "Я";
+  return owner === "milena" ? "Милена" : "Роксана";
 }
 
 export default function BudgetPage() {
