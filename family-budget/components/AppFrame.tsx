@@ -13,7 +13,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#f8fbff_0%,_#f1f5f9_42%,_#eef2ff_100%)] text-slate-900 md:flex">
       <Sidebar />
       <main className="flex-1">
-        <header className="sticky top-0 z-20 border-b border-white/80 bg-white/75 px-4 py-4 backdrop-blur md:px-8">
+        <header className="sticky top-0 z-20 border-b border-white/80 bg-white/85 px-4 py-4 backdrop-blur md:px-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">

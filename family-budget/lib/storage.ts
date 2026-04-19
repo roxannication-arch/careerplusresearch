@@ -13,6 +13,8 @@ import {
 } from "@/lib/types";
 
 const STORAGE_KEY = "family-budget-storage-v1";
+const LEGACY_STORAGE_KEYS = ["family-budget-storage"];
+const MONTH_KEY_PATTERN = /^(\d{4})-(\d{1,2})$/;
 
 export const DEFAULT_EXCHANGE_RATE = 92;
 
@@ -41,6 +43,25 @@ function currentMonthKey(): string {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   return `${now.getFullYear()}-${month}`;
+}
+
+function normalizeMonthKey(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const match = value.match(MONTH_KEY_PATTERN);
+  if (!match) {
+    return null;
+  }
+
+  const year = Number.parseInt(match[1], 10);
+  const month = Number.parseInt(match[2], 10);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+    return null;
+  }
+
+  return `${year}-${String(month).padStart(2, "0")}`;
 }
 
 function ensureCurrency(value: unknown): Currency {
@@ -167,23 +188,47 @@ function normalizeMonthData(month: unknown): MonthBudgetData {
   };
 }
 
+function monthHasMeaningfulData(monthData: MonthBudgetData): boolean {
+  const hasIncomeData = monthData.incomes.some(
+    (income) =>
+      (typeof income.amount === "number" && Number.isFinite(income.amount) && income.amount !== 0) ||
+      income.name.trim().length > 0,
+  );
+  const hasExpenseData = monthData.expenses.some(
+    (expense) =>
+      (typeof expense.amount === "number" && Number.isFinite(expense.amount) && expense.amount !== 0) ||
+      expense.name.trim().length > 0,
+  );
+
+  return hasIncomeData || hasExpenseData || monthData.pockets.length > 0 || monthData.transactions.length > 0;
+}
+
 function normalizeState(input: unknown): BudgetStorageState {
   const source = (input ?? {}) as Partial<BudgetStorageState>;
-  const selectedMonth = typeof source.selectedMonth === "string" && /^\d{4}-\d{2}$/.test(source.selectedMonth)
-    ? source.selectedMonth
-    : currentMonthKey();
+  const selectedMonthCandidate = normalizeMonthKey(source.selectedMonth);
+  let selectedMonth = selectedMonthCandidate ?? currentMonthKey();
 
   const monthsInput = source.months && typeof source.months === "object" ? source.months : {};
   const normalizedMonths: Record<string, MonthBudgetData> = {};
 
   for (const [monthKey, monthValue] of Object.entries(monthsInput as Record<string, unknown>)) {
-    if (/^\d{4}-\d{2}$/.test(monthKey)) {
-      normalizedMonths[monthKey] = normalizeMonthData(monthValue);
+    const normalizedMonthKey = normalizeMonthKey(monthKey);
+    if (normalizedMonthKey) {
+      normalizedMonths[normalizedMonthKey] = normalizeMonthData(monthValue);
     }
   }
 
   if (!normalizedMonths[selectedMonth]) {
     normalizedMonths[selectedMonth] = createDefaultMonthData();
+  }
+
+  if (!monthHasMeaningfulData(normalizedMonths[selectedMonth])) {
+    const monthWithData = Object.keys(normalizedMonths)
+      .filter((monthKey) => monthHasMeaningfulData(normalizedMonths[monthKey]))
+      .sort((left, right) => right.localeCompare(left))[0];
+    if (monthWithData) {
+      selectedMonth = monthWithData;
+    }
   }
 
   return {
@@ -193,13 +238,13 @@ function normalizeState(input: unknown): BudgetStorageState {
 }
 
 export function buildMonthOptions(centerMonth: string, range = 24): string[] {
-  const [yearString, monthString] = centerMonth.split("-");
-  const baseYear = Number.parseInt(yearString ?? "", 10);
-  const baseMonth = Number.parseInt(monthString ?? "", 10);
-
-  if (!Number.isFinite(baseYear) || !Number.isFinite(baseMonth) || baseMonth < 1 || baseMonth > 12) {
+  const normalizedCenterMonth = normalizeMonthKey(centerMonth);
+  if (!normalizedCenterMonth) {
     return [currentMonthKey()];
   }
+  const [yearString, monthString] = normalizedCenterMonth.split("-");
+  const baseYear = Number.parseInt(yearString, 10);
+  const baseMonth = Number.parseInt(monthString, 10);
 
   const baseDate = new Date(baseYear, baseMonth - 1, 1);
   const options: string[] = [];
@@ -215,13 +260,13 @@ export function buildMonthOptions(centerMonth: string, range = 24): string[] {
 }
 
 export function getMonthLabel(monthKey: string): string {
-  const [yearString, monthString] = monthKey.split("-");
-  const year = Number.parseInt(yearString ?? "", 10);
-  const month = Number.parseInt(monthString ?? "", 10);
-
-  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+  const normalizedKey = normalizeMonthKey(monthKey);
+  if (!normalizedKey) {
     return monthKey;
   }
+  const [yearString, monthString] = normalizedKey.split("-");
+  const year = Number.parseInt(yearString, 10);
+  const month = Number.parseInt(monthString, 10);
 
   return new Date(year, month - 1, 1).toLocaleDateString("ru-RU", {
     month: "long",
@@ -238,7 +283,10 @@ export function loadStorageState(): BudgetStorageState {
     };
   }
 
-  const raw = window.localStorage.getItem(STORAGE_KEY);
+  const raw =
+    window.localStorage.getItem(STORAGE_KEY) ??
+    LEGACY_STORAGE_KEYS.map((key) => window.localStorage.getItem(key)).find((value) => Boolean(value)) ??
+    null;
   if (!raw) {
     const month = currentMonthKey();
     return {
@@ -288,20 +336,21 @@ export function upsertMonthData(
 }
 
 export function setSelectedMonth(state: BudgetStorageState, monthKey: string): BudgetStorageState {
-  if (!/^\d{4}-\d{2}$/.test(monthKey)) {
+  const normalizedMonthKey = normalizeMonthKey(monthKey);
+  if (!normalizedMonthKey) {
     return state;
   }
 
-  if (state.months[monthKey]) {
-    return { ...state, selectedMonth: monthKey };
+  if (state.months[normalizedMonthKey]) {
+    return { ...state, selectedMonth: normalizedMonthKey };
   }
 
   return {
     ...state,
-    selectedMonth: monthKey,
+    selectedMonth: normalizedMonthKey,
     months: {
       ...state.months,
-      [monthKey]: createDefaultMonthData(),
+      [normalizedMonthKey]: createDefaultMonthData(),
     },
   };
 }

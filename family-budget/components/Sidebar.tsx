@@ -33,7 +33,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-full border-b border-white/70 bg-white/80 px-4 py-4 backdrop-blur md:w-72 md:border-r md:border-b-0 md:px-6 md:py-7">
+    <aside className="w-full border-b border-white/70 bg-white/90 px-4 py-4 backdrop-blur md:w-72 md:border-r md:border-b-0 md:px-6 md:py-7">
       <div className="mb-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
           Family Budget
@@ -41,7 +41,7 @@ export function Sidebar() {
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">Семейный бюджет</h1>
       </div>
 
-      <nav className="flex gap-2 overflow-x-auto pb-1 md:flex-col md:gap-1.5 md:overflow-visible">
+      <nav className="grid grid-cols-4 gap-2 overflow-x-auto pb-1 md:flex md:flex-col md:gap-1.5 md:overflow-visible">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
