@@ -9,6 +9,11 @@ import { useBudget } from "@/components/BudgetProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateIncomeTotals, calculatePlannedExpenseTotals } from "@/lib/summary";
+import { IncomeItem } from "@/lib/types";
+
+function ownerLabel(owner: IncomeItem["owner"]) {
+  return owner === "milena" ? "Милена" : "Я";
+}
 
 export default function BudgetPage() {
   const {
@@ -24,6 +29,8 @@ export default function BudgetPage() {
 
   const incomeTotals = calculateIncomeTotals(monthData);
   const plannedTotals = calculatePlannedExpenseTotals(monthData);
+  const myIncomes = monthData.incomes.filter((income) => income.owner === "me");
+  const milenaIncomes = monthData.incomes.filter((income) => income.owner === "milena");
 
   return (
     <div className="space-y-5">
@@ -50,31 +57,62 @@ export default function BudgetPage() {
       </Card>
 
       <Card className="bg-white">
-        <CardHeader className="flex flex-wrap items-center justify-between gap-3">
+        <CardHeader>
           <CardTitle>Доходы</CardTitle>
-          <Button variant="outline" onClick={addIncome}>
-            <Plus className="size-4" />
-            Добавить источник
-          </Button>
         </CardHeader>
         <CardContent className="space-y-3">
-          {monthData.incomes.map((income) => (
-            <BudgetRow
-              key={income.id}
-              name={income.name}
-              amount={income.amount}
-              currency={income.currency}
-              exchangeRate={monthData.exchangeRate}
-              namePlaceholder="Источник дохода"
-              amountPlaceholder="Сумма"
-              onNameChange={(value) => updateIncome(income.id, { name: value })}
-              onAmountChange={(value) => updateIncome(income.id, { amount: value })}
-              onCurrencyChange={(currency) => updateIncome(income.id, { currency })}
-              onDelete={
-                monthData.incomes.length > 2 ? () => deleteIncome(income.id) : undefined
-              }
-            />
-          ))}
+          <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-slate-900">{ownerLabel("me")}</p>
+              <Button variant="outline" onClick={() => addIncome("me")}>
+                <Plus className="size-4" />
+                Добавить источник
+              </Button>
+            </div>
+            {myIncomes.map((income) => (
+              <BudgetRow
+                key={income.id}
+                name={income.name}
+                amount={income.amount}
+                currency={income.currency}
+                exchangeRate={monthData.exchangeRate}
+                namePlaceholder="Источник дохода"
+                amountPlaceholder="Сумма"
+                onNameChange={(value) => updateIncome(income.id, { name: value })}
+                onAmountChange={(value) => updateIncome(income.id, { amount: value })}
+                onCurrencyChange={(currency) => updateIncome(income.id, { currency })}
+                onDelete={myIncomes.length > 1 ? () => deleteIncome(income.id) : undefined}
+              />
+            ))}
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-slate-900">{ownerLabel("milena")}</p>
+              <Button variant="outline" onClick={() => addIncome("milena")}>
+                <Plus className="size-4" />
+                Добавить источник
+              </Button>
+            </div>
+            {milenaIncomes.map((income) => (
+              <BudgetRow
+                key={income.id}
+                name={income.name}
+                amount={income.amount}
+                currency={income.currency}
+                exchangeRate={monthData.exchangeRate}
+                namePlaceholder="Источник дохода"
+                amountPlaceholder="Сумма"
+                onNameChange={(value) => updateIncome(income.id, { name: value })}
+                onAmountChange={(value) => updateIncome(income.id, { amount: value })}
+                onCurrencyChange={(currency) => updateIncome(income.id, { currency })}
+                onDelete={
+                  milenaIncomes.length > 1 ? () => deleteIncome(income.id) : undefined
+                }
+              />
+            ))}
+          </div>
+
           <div className="rounded-lg bg-emerald-50 px-3 py-2">
             <p className="text-xs text-emerald-700">Итого доходы</p>
             <CurrencyDisplay

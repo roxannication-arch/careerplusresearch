@@ -1,4 +1,5 @@
 export type Currency = "RUB" | "USD";
+export type IncomeOwner = "me" | "milena";
 
 export interface BudgetItem {
   id: string;
@@ -7,7 +8,9 @@ export interface BudgetItem {
   currency: Currency;
 }
 
-export type IncomeItem = BudgetItem;
+export type IncomeItem = BudgetItem & {
+  owner: IncomeOwner;
+};
 
 export type ExpenseItem = BudgetItem;
 

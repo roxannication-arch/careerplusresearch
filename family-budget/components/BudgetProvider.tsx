@@ -20,7 +20,15 @@ import {
   setSelectedMonth as selectMonthInState,
   upsertMonthData,
 } from "@/lib/storage";
-import { BudgetStorageState, Currency, ExpenseItem, IncomeItem, Pocket, Transaction } from "@/lib/types";
+import {
+  BudgetStorageState,
+  Currency,
+  ExpenseItem,
+  IncomeItem,
+  IncomeOwner,
+  Pocket,
+  Transaction,
+} from "@/lib/types";
 
 interface BudgetContextValue {
   state: BudgetStorageState;
@@ -30,7 +38,7 @@ interface BudgetContextValue {
   setSelectedMonth: (monthKey: string) => void;
   updateExchangeRate: (exchangeRate: number) => void;
   updateIncome: (id: string, patch: Partial<IncomeItem>) => void;
-  addIncome: () => void;
+  addIncome: (owner: IncomeOwner) => void;
   deleteIncome: (id: string) => void;
   updateExpense: (id: string, patch: Partial<ExpenseItem>) => void;
   addExpense: () => void;
@@ -121,20 +129,28 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
     [updateCurrentMonth],
   );
 
-  const addIncome = useCallback(() => {
-    updateCurrentMonth((month) => ({
-      ...month,
-      incomes: [
-        ...month.incomes,
-        { id: createId(), name: "", amount: null, currency: "RUB" },
-      ],
-    }));
-  }, [updateCurrentMonth]);
+  const addIncome = useCallback(
+    (owner: IncomeOwner) => {
+      updateCurrentMonth((month) => ({
+        ...month,
+        incomes: [
+          ...month.incomes,
+          { id: createId(), owner, name: "", amount: null, currency: "RUB" },
+        ],
+      }));
+    },
+    [updateCurrentMonth],
+  );
 
   const deleteIncome = useCallback(
     (id: string) => {
       updateCurrentMonth((month) => {
-        if (month.incomes.length <= 2) {
+        const incomeToDelete = month.incomes.find((income) => income.id === id);
+        if (!incomeToDelete) {
+          return month;
+        }
+        const ownerIncomes = month.incomes.filter((income) => income.owner === incomeToDelete.owner);
+        if (ownerIncomes.length <= 1) {
           return month;
         }
 

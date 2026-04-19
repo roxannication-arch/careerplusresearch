@@ -1,7 +1,16 @@
 "use client";
 
 import { createId } from "@/lib/id";
-import { BudgetStorageState, Currency, ExpenseItem, IncomeItem, MonthBudgetData, Pocket, Transaction } from "@/lib/types";
+import {
+  BudgetStorageState,
+  Currency,
+  ExpenseItem,
+  IncomeItem,
+  IncomeOwner,
+  MonthBudgetData,
+  Pocket,
+  Transaction,
+} from "@/lib/types";
 
 const STORAGE_KEY = "family-budget-storage-v1";
 
@@ -9,8 +18,8 @@ export const DEFAULT_EXCHANGE_RATE = 92;
 
 function createDefaultIncomes(): IncomeItem[] {
   return [
-    { id: createId(), name: "Роксана", amount: null, currency: "RUB" },
-    { id: createId(), name: "Милена", amount: null, currency: "RUB" },
+    { id: createId(), owner: "me", name: "", amount: null, currency: "RUB" },
+    { id: createId(), owner: "milena", name: "", amount: null, currency: "RUB" },
   ];
 }
 
@@ -36,6 +45,10 @@ function currentMonthKey(): string {
 
 function ensureCurrency(value: unknown): Currency {
   return value === "USD" ? "USD" : "RUB";
+}
+
+function ensureIncomeOwner(value: unknown, fallback: IncomeOwner): IncomeOwner {
+  return value === "milena" ? "milena" : fallback;
 }
 
 function normalizeId(value: unknown): string {
@@ -66,13 +79,21 @@ function normalizeIncome(item: unknown, index: number): IncomeItem {
   const source = (item ?? {}) as Partial<IncomeItem>;
   const fallback = createDefaultIncomes()[index] ?? {
     id: createId(),
+    owner: index === 1 ? "milena" : "me",
     name: "",
     amount: null,
     currency: "RUB" as const,
   };
 
+  let owner = ensureIncomeOwner((source as { owner?: unknown }).owner, fallback.owner);
+  // Migrate old data format where first income was me and second was milena.
+  if ((source as { owner?: unknown }).owner === undefined) {
+    owner = index === 1 ? "milena" : "me";
+  }
+
   return {
     id: normalizeId(source.id ?? fallback.id),
+    owner,
     name: normalizeName(source.name ?? fallback.name),
     amount: normalizeAmount(source.amount),
     currency: ensureCurrency(source.currency ?? fallback.currency),
@@ -124,6 +145,14 @@ function normalizeMonthData(month: unknown): MonthBudgetData {
     incomesRaw.length > 0
       ? incomesRaw.map((income, index) => normalizeIncome(income, index))
       : createDefaultIncomes();
+  const hasMe = incomes.some((income) => income.owner === "me");
+  const hasMilena = incomes.some((income) => income.owner === "milena");
+  if (!hasMe) {
+    incomes.unshift({ id: createId(), owner: "me", name: "", amount: null, currency: "RUB" });
+  }
+  if (!hasMilena) {
+    incomes.push({ id: createId(), owner: "milena", name: "", amount: null, currency: "RUB" });
+  }
   const expenses = expensesRaw.length > 0 ? expensesRaw.map(normalizeExpense) : createDefaultExpenses();
 
   return {
