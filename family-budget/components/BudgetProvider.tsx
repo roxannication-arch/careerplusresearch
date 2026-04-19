@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { convertCurrency } from "@/lib/currency";
+import { createId } from "@/lib/id";
 import {
   buildMonthOptions,
   getMonthData,
@@ -125,7 +126,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       ...month,
       incomes: [
         ...month.incomes,
-        { id: crypto.randomUUID(), name: "", amount: null, currency: "RUB" },
+        { id: createId(), name: "", amount: null, currency: "RUB" },
       ],
     }));
   }, [updateCurrentMonth]);
@@ -173,7 +174,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       ...month,
       expenses: [
         ...month.expenses,
-        { id: crypto.randomUUID(), name: "", amount: null, currency: "RUB" },
+        { id: createId(), name: "", amount: null, currency: "RUB" },
       ],
     }));
   }, [updateCurrentMonth]);
@@ -185,7 +186,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
         return {
           ...month,
           expenses:
-            next.length > 0 ? next : [{ id: crypto.randomUUID(), name: "", amount: null, currency: "RUB" }],
+            next.length > 0 ? next : [{ id: createId(), name: "", amount: null, currency: "RUB" }],
         };
       });
     },
@@ -199,7 +200,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
         pockets: [
           ...month.pockets,
           {
-            id: crypto.randomUUID(),
+            id: createId(),
             name: input.name,
             targetAmount: sanitizeNullableAmount(input.targetAmount),
             currency: input.currency,
@@ -292,7 +293,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
         transactions: [
           {
             ...input,
-            id: crypto.randomUUID(),
+            id: createId(),
           },
           ...month.transactions,
         ],

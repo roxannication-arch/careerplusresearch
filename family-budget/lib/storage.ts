@@ -1,5 +1,6 @@
 "use client";
 
+import { createId } from "@/lib/id";
 import { BudgetStorageState, Currency, ExpenseItem, IncomeItem, MonthBudgetData, Pocket, Transaction } from "@/lib/types";
 
 const STORAGE_KEY = "family-budget-storage-v1";
@@ -8,13 +9,13 @@ export const DEFAULT_EXCHANGE_RATE = 92;
 
 function createDefaultIncomes(): IncomeItem[] {
   return [
-    { id: crypto.randomUUID(), name: "Роксана", amount: null, currency: "RUB" },
-    { id: crypto.randomUUID(), name: "Милена", amount: null, currency: "RUB" },
+    { id: createId(), name: "Роксана", amount: null, currency: "RUB" },
+    { id: createId(), name: "Милена", amount: null, currency: "RUB" },
   ];
 }
 
 function createDefaultExpenses(): ExpenseItem[] {
-  return [{ id: crypto.randomUUID(), name: "", amount: null, currency: "RUB" }];
+  return [{ id: createId(), name: "", amount: null, currency: "RUB" }];
 }
 
 function createDefaultMonthData(): MonthBudgetData {
@@ -38,7 +39,7 @@ function ensureCurrency(value: unknown): Currency {
 }
 
 function normalizeId(value: unknown): string {
-  return typeof value === "string" && value.trim().length > 0 ? value : crypto.randomUUID();
+  return typeof value === "string" && value.trim().length > 0 ? value : createId();
 }
 
 function normalizeName(value: unknown): string {
@@ -64,7 +65,7 @@ function normalizeDate(value: unknown): string {
 function normalizeIncome(item: unknown, index: number): IncomeItem {
   const source = (item ?? {}) as Partial<IncomeItem>;
   const fallback = createDefaultIncomes()[index] ?? {
-    id: crypto.randomUUID(),
+    id: createId(),
     name: "",
     amount: null,
     currency: "RUB" as const,
