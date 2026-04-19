@@ -39,6 +39,13 @@ export function TransactionForm({ categories, onSubmit }: TransactionFormProps) 
   const selectedCategoryId = categories.some((item) => item.id === categoryId)
     ? categoryId
     : firstCategory;
+  const categoryLabelMap = new Map(
+    categories.map((category, index) => [
+      category.id,
+      category.name.trim() || `Категория ${index + 1}`,
+    ]),
+  );
+  const selectedCategoryLabel = categoryLabelMap.get(selectedCategoryId);
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -72,12 +79,14 @@ export function TransactionForm({ categories, onSubmit }: TransactionFormProps) 
           disabled={!hasCategories}
         >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder={hasCategories ? "Категория" : "Сначала добавьте категорию"} />
+            <SelectValue placeholder={hasCategories ? "Категория" : "Сначала добавьте категорию"}>
+              {selectedCategoryLabel ?? (hasCategories ? "Категория" : "Сначала добавьте категорию")}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {categories.map((category) => (
               <SelectItem key={category.id} value={category.id}>
-                {category.name.trim() || "Без названия"}
+                {categoryLabelMap.get(category.id)}
               </SelectItem>
             ))}
           </SelectContent>

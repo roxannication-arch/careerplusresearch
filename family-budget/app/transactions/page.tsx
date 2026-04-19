@@ -29,6 +29,12 @@ export default function TransactionsPage() {
   const [dateFrom, setDateFrom] = useState(monthStartDate());
   const [dateTo, setDateTo] = useState(new Date().toISOString().slice(0, 10));
 
+  const categoryLabelMap = new Map(
+    monthData.expenses.map((expense, index) => [
+      expense.id,
+      expense.name.trim() || `Категория ${index + 1}`,
+    ]),
+  );
   const categorySummary = useMemo(() => calculateCategorySummary(monthData), [monthData]);
 
   const filteredTransactions = monthData.transactions.filter((transaction) => {
@@ -70,7 +76,7 @@ export default function TransactionsPage() {
               <SelectItem value="all">Все категории</SelectItem>
               {monthData.expenses.map((expense) => (
                 <SelectItem key={expense.id} value={expense.id}>
-                  {expense.name.trim() || "Без названия"}
+                  {categoryLabelMap.get(expense.id)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -99,7 +105,9 @@ export default function TransactionsPage() {
                 >
                   <div>
                     <p className="text-xs text-muted-foreground">{transaction.date}</p>
-                    <p className="text-sm font-medium">{category?.name || "Без категории"}</p>
+                    <p className="text-sm font-medium">
+                      {category ? categoryLabelMap.get(category.id) : "Без категории"}
+                    </p>
                     {transaction.note ? (
                       <p className="text-xs text-muted-foreground">{transaction.note}</p>
                     ) : null}

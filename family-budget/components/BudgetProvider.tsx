@@ -42,6 +42,7 @@ interface BudgetContextValue {
   deleteIncome: (id: string) => void;
   updateExpense: (id: string, patch: Partial<ExpenseItem>) => void;
   addExpense: () => void;
+  addExpenseCategory: (name: string) => void;
   deleteExpense: (id: string) => void;
   addPocket: (input: Omit<Pocket, "id" | "savedAmount"> & { savedAmount?: number }) => void;
   updatePocket: (id: string, patch: Partial<Pocket>) => void;
@@ -195,6 +196,24 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
     }));
   }, [updateCurrentMonth]);
 
+  const addExpenseCategory = useCallback(
+    (name: string) => {
+      const trimmed = name.trim();
+      if (!trimmed) {
+        return;
+      }
+
+      updateCurrentMonth((month) => ({
+        ...month,
+        expenses: [
+          ...month.expenses,
+          { id: createId(), name: trimmed, amount: null, currency: "RUB" },
+        ],
+      }));
+    },
+    [updateCurrentMonth],
+  );
+
   const deleteExpense = useCallback(
     (id: string) => {
       updateCurrentMonth((month) => {
@@ -341,6 +360,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       deleteIncome,
       updateExpense,
       addExpense,
+      addExpenseCategory,
       deleteExpense,
       addPocket,
       updatePocket,
@@ -361,6 +381,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       deleteIncome,
       updateExpense,
       addExpense,
+      addExpenseCategory,
       deleteExpense,
       addPocket,
       updatePocket,
