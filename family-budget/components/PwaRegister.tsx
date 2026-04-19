@@ -4,19 +4,14 @@ import { useEffect } from "react";
 
 export function PwaRegister() {
   useEffect(() => {
-    if (!("serviceWorker" in navigator)) {
-      return;
+    // Keep production responsive to frequent UI/data fixes:
+    // unregister old SW caches that may hold stale bundles.
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+        .catch(() => undefined);
     }
-
-    const register = async () => {
-      try {
-        await navigator.serviceWorker.register("/sw.js");
-      } catch {
-        // SW registration failure should not block app usage.
-      }
-    };
-
-    void register();
   }, []);
 
   return null;

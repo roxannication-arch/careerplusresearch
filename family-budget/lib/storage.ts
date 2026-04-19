@@ -203,19 +203,50 @@ function monthHasMeaningfulData(monthData: MonthBudgetData): boolean {
   return hasIncomeData || hasExpenseData || monthData.pockets.length > 0 || monthData.transactions.length > 0;
 }
 
+function isMonthDataLike(value: unknown): value is Partial<MonthBudgetData> {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const source = value as Record<string, unknown>;
+  return (
+    Array.isArray(source.incomes) ||
+    Array.isArray(source.expenses) ||
+    Array.isArray(source.pockets) ||
+    Array.isArray(source.transactions) ||
+    typeof source.exchangeRate === "number"
+  );
+}
+
 function normalizeState(input: unknown): BudgetStorageState {
   const source = (input ?? {}) as Partial<BudgetStorageState>;
   const selectedMonthCandidate = normalizeMonthKey(source.selectedMonth);
   let selectedMonth = selectedMonthCandidate ?? currentMonthKey();
 
-  const monthsInput = source.months && typeof source.months === "object" ? source.months : {};
+  const monthContainerCandidates = [
+    source.months,
+    (source as { dataByMonth?: unknown }).dataByMonth,
+    (source as { byMonth?: unknown }).byMonth,
+    (source as { monthlyData?: unknown }).monthlyData,
+  ];
   const normalizedMonths: Record<string, MonthBudgetData> = {};
 
-  for (const [monthKey, monthValue] of Object.entries(monthsInput as Record<string, unknown>)) {
-    const normalizedMonthKey = normalizeMonthKey(monthKey);
-    if (normalizedMonthKey) {
-      normalizedMonths[normalizedMonthKey] = normalizeMonthData(monthValue);
+  for (const container of monthContainerCandidates) {
+    if (!container || typeof container !== "object") {
+      continue;
     }
+
+    for (const [monthKey, monthValue] of Object.entries(container as Record<string, unknown>)) {
+      const normalizedMonthKey = normalizeMonthKey(monthKey);
+      if (normalizedMonthKey) {
+        normalizedMonths[normalizedMonthKey] = normalizeMonthData(monthValue);
+      }
+    }
+  }
+
+  // Migrate legacy format where month payload was stored at root.
+  if (Object.keys(normalizedMonths).length === 0 && isMonthDataLike(source)) {
+    normalizedMonths[selectedMonth] = normalizeMonthData(source);
   }
 
   if (!normalizedMonths[selectedMonth]) {
