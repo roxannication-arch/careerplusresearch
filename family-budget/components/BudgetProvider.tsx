@@ -29,6 +29,8 @@ interface BudgetContextValue {
   setSelectedMonth: (monthKey: string) => void;
   updateExchangeRate: (exchangeRate: number) => void;
   updateIncome: (id: string, patch: Partial<IncomeItem>) => void;
+  addIncome: () => void;
+  deleteIncome: (id: string) => void;
   updateExpense: (id: string, patch: Partial<ExpenseItem>) => void;
   addExpense: () => void;
   deleteExpense: (id: string) => void;
@@ -114,6 +116,32 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
             : income,
         ),
       }));
+    },
+    [updateCurrentMonth],
+  );
+
+  const addIncome = useCallback(() => {
+    updateCurrentMonth((month) => ({
+      ...month,
+      incomes: [
+        ...month.incomes,
+        { id: crypto.randomUUID(), name: "", amount: null, currency: "RUB" },
+      ],
+    }));
+  }, [updateCurrentMonth]);
+
+  const deleteIncome = useCallback(
+    (id: string) => {
+      updateCurrentMonth((month) => {
+        if (month.incomes.length <= 2) {
+          return month;
+        }
+
+        return {
+          ...month,
+          incomes: month.incomes.filter((income) => income.id !== id),
+        };
+      });
     },
     [updateCurrentMonth],
   );
@@ -292,6 +320,8 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       setSelectedMonth,
       updateExchangeRate,
       updateIncome,
+      addIncome,
+      deleteIncome,
       updateExpense,
       addExpense,
       deleteExpense,
@@ -310,6 +340,8 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       setSelectedMonth,
       updateExchangeRate,
       updateIncome,
+      addIncome,
+      deleteIncome,
       updateExpense,
       addExpense,
       deleteExpense,

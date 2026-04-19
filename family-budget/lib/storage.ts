@@ -8,8 +8,8 @@ export const DEFAULT_EXCHANGE_RATE = 92;
 
 function createDefaultIncomes(): IncomeItem[] {
   return [
-    { id: "income-roksana", name: "Роксана", amount: null, currency: "RUB" },
-    { id: "income-milena", name: "Милена", amount: null, currency: "RUB" },
+    { id: crypto.randomUUID(), name: "Роксана", amount: null, currency: "RUB" },
+    { id: crypto.randomUUID(), name: "Милена", amount: null, currency: "RUB" },
   ];
 }
 
@@ -63,8 +63,12 @@ function normalizeDate(value: unknown): string {
 
 function normalizeIncome(item: unknown, index: number): IncomeItem {
   const source = (item ?? {}) as Partial<IncomeItem>;
-  const fallback =
-    createDefaultIncomes()[index] ?? { id: crypto.randomUUID(), name: "", amount: null, currency: "RUB" as const };
+  const fallback = createDefaultIncomes()[index] ?? {
+    id: crypto.randomUUID(),
+    name: "",
+    amount: null,
+    currency: "RUB" as const,
+  };
 
   return {
     id: normalizeId(source.id ?? fallback.id),
@@ -115,7 +119,10 @@ function normalizeMonthData(month: unknown): MonthBudgetData {
   const pocketsRaw = Array.isArray(source.pockets) ? source.pockets : [];
   const transactionsRaw = Array.isArray(source.transactions) ? source.transactions : [];
 
-  const incomes = [normalizeIncome(incomesRaw[0], 0), normalizeIncome(incomesRaw[1], 1)];
+  const incomes =
+    incomesRaw.length > 0
+      ? incomesRaw.map((income, index) => normalizeIncome(income, index))
+      : createDefaultIncomes();
   const expenses = expensesRaw.length > 0 ? expensesRaw.map(normalizeExpense) : createDefaultExpenses();
 
   return {

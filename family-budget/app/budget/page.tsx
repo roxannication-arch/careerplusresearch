@@ -15,6 +15,8 @@ export default function BudgetPage() {
     monthData,
     updateExchangeRate,
     updateIncome,
+    addIncome,
+    deleteIncome,
     updateExpense,
     addExpense,
     deleteExpense,
@@ -48,8 +50,12 @@ export default function BudgetPage() {
       </Card>
 
       <Card className="bg-white">
-        <CardHeader>
+        <CardHeader className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle>Доходы</CardTitle>
+          <Button variant="outline" onClick={addIncome}>
+            <Plus className="size-4" />
+            Добавить источник
+          </Button>
         </CardHeader>
         <CardContent className="space-y-3">
           {monthData.incomes.map((income) => (
@@ -64,6 +70,9 @@ export default function BudgetPage() {
               onNameChange={(value) => updateIncome(income.id, { name: value })}
               onAmountChange={(value) => updateIncome(income.id, { amount: value })}
               onCurrencyChange={(currency) => updateIncome(income.id, { currency })}
+              onDelete={
+                monthData.incomes.length > 2 ? () => deleteIncome(income.id) : undefined
+              }
             />
           ))}
           <div className="rounded-lg bg-emerald-50 px-3 py-2">
