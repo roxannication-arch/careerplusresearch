@@ -195,6 +195,11 @@ export default function DashboardPage() {
     }),
     [income, spent, pockets],
   );
+  const totalIncome = income.rub;
+  const actualSpent = spent.rub;
+  const totalPlanned = plannedExpenses.rub;
+  const pocketTotal = pockets.rub;
+  const rate = monthData.exchangeRate;
 
   const categoryNameById = useMemo(
     () =>
@@ -232,44 +237,55 @@ export default function DashboardPage() {
         <p className="mt-[5px] text-[13px] text-[var(--ink3)]">
           {formatNumber(available.usd)} $
         </p>
-        <div className="my-[18px] h-[0.5px] bg-[var(--line)]" />
-        <div className="grid grid-cols-3 gap-0">
-          <div>
-            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Income</p>
-            <DualAmount
-              amount={income.rub}
-              currency="RUB"
-              exchangeRate={monthData.exchangeRate}
-              primaryClassName="text-[17px] font-semibold tracking-[-0.4px] text-[var(--green)]"
-              secondaryClassName="mt-0.5 text-[11px] text-[var(--ink3)]"
-              primarySymbolClassName="text-[13px] font-normal text-[var(--green)]"
-            />
+        <div
+          style={{
+            display: "flex",
+            gap: 0,
+            marginTop: "18px",
+            paddingTop: "18px",
+            borderTop: "0.5px solid rgba(0,0,0,0.06)",
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: "11px", fontWeight: 500, color: "#AEAEB2", marginBottom: "4px" }}>
+              Income
+            </div>
+            <div style={{ fontSize: "17px", fontWeight: 600, letterSpacing: "-0.4px", color: "#1A9A44" }}>
+              {totalIncome.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "2px" }}>₽</span>
+            </div>
+            <div style={{ fontSize: "11px", color: "#AEAEB2", marginTop: "2px" }}>
+              {(totalIncome / rate).toLocaleString("en-US", { maximumFractionDigits: 0 })} $
+            </div>
           </div>
-          <div className="border-l border-[0.5px] border-[var(--line)] pl-4">
-            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Spent</p>
-            <DualAmount
-              amount={spent.rub}
-              currency="RUB"
-              exchangeRate={monthData.exchangeRate}
-              primaryClassName="text-[17px] font-semibold tracking-[-0.4px] text-[var(--red)]"
-              secondaryClassName="mt-0.5 text-[11px] text-[var(--ink3)]"
-              primarySymbolClassName="text-[13px] font-normal text-[var(--red)]"
-            />
-            <p className="mt-[3px] whitespace-nowrap text-[10px] text-[var(--ink3)]">
-              of <span>₽</span>
-              {formatNumber(plannedExpenses.rub)} planned
-            </p>
+
+          <div style={{ flex: 1, borderLeft: "0.5px solid rgba(0,0,0,0.06)", paddingLeft: "16px" }}>
+            <div style={{ fontSize: "11px", fontWeight: 500, color: "#AEAEB2", marginBottom: "4px" }}>
+              Spent
+            </div>
+            <div style={{ fontSize: "17px", fontWeight: 600, letterSpacing: "-0.4px", color: "#C7372F" }}>
+              {actualSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "2px" }}>₽</span>
+            </div>
+            <div style={{ fontSize: "11px", color: "#AEAEB2", marginTop: "2px" }}>
+              {(actualSpent / rate).toLocaleString("en-US", { maximumFractionDigits: 0 })} $
+            </div>
+            <div style={{ fontSize: "10px", color: "#AEAEB2", marginTop: "3px", whiteSpace: "nowrap" }}>
+              of {totalPlanned.toLocaleString("en-US", { maximumFractionDigits: 0 })} ₽ planned
+            </div>
           </div>
-          <div className="border-l border-[0.5px] border-[var(--line)] pl-4">
-            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Pockets</p>
-            <DualAmount
-              amount={pockets.rub}
-              currency="RUB"
-              exchangeRate={monthData.exchangeRate}
-              primaryClassName="text-[17px] font-semibold tracking-[-0.4px] text-[var(--blue)]"
-              secondaryClassName="mt-0.5 text-[11px] text-[var(--ink3)]"
-              primarySymbolClassName="text-[13px] font-normal text-[var(--blue)]"
-            />
+
+          <div style={{ flex: 1, borderLeft: "0.5px solid rgba(0,0,0,0.06)", paddingLeft: "16px" }}>
+            <div style={{ fontSize: "11px", fontWeight: 500, color: "#AEAEB2", marginBottom: "4px" }}>
+              Pockets
+            </div>
+            <div style={{ fontSize: "17px", fontWeight: 600, letterSpacing: "-0.4px", color: "#0071E3" }}>
+              {pocketTotal.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "2px" }}>₽</span>
+            </div>
+            <div style={{ fontSize: "11px", color: "#AEAEB2", marginTop: "2px" }}>
+              {(pocketTotal / rate).toLocaleString("en-US", { maximumFractionDigits: 0 })} $
+            </div>
           </div>
         </div>
       </section>
