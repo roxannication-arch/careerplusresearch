@@ -32,6 +32,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" className="h-full antialiased">
+      <head>
+        <link rel="apple-touch-icon" href="/icon-180.png" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Budget" />
+        <meta name="theme-color" content="#0A0A0A" />
+      </head>
       <body className={`${inter.className} min-h-full`}>
         <BudgetProvider>
           <PwaRegister />
