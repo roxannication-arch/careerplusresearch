@@ -102,6 +102,7 @@ function DualAmount({
   exchangeRate,
   primaryClassName = "text-[16px] font-semibold tracking-[-0.4px] text-[var(--ink)]",
   secondaryClassName = "mt-0.5 text-[11px] text-[var(--ink3)]",
+  primarySymbolClassName = "",
   negative,
 }: {
   amount: number;
@@ -109,6 +110,7 @@ function DualAmount({
   exchangeRate: number;
   primaryClassName?: string;
   secondaryClassName?: string;
+  primarySymbolClassName?: string;
   negative?: boolean;
 }) {
   const signed = negative ? -Math.abs(amount) : amount;
@@ -124,7 +126,9 @@ function DualAmount({
       <p className={primaryClassName}>
         {primarySign}
         {formatNumber(signed)}
-        <span className="ml-1 font-light text-[0.85em]">{primarySymbol}</span>
+        <span className={cn("ml-1 text-[13px] font-normal", primarySymbolClassName)}>
+          {primarySymbol}
+        </span>
       </p>
       <p className={secondaryClassName}>
         {secondarySign}
@@ -231,37 +235,40 @@ export default function DashboardPage() {
         <div className="my-[18px] h-[0.5px] bg-[var(--line)]" />
         <div className="grid grid-cols-3 gap-0">
           <div>
-            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Income ₽</p>
+            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Income</p>
             <DualAmount
               amount={income.rub}
               currency="RUB"
               exchangeRate={monthData.exchangeRate}
               primaryClassName="text-[17px] font-semibold tracking-[-0.4px] text-[var(--green)]"
               secondaryClassName="mt-0.5 text-[11px] text-[var(--ink3)]"
+              primarySymbolClassName="text-[13px] font-normal text-[var(--green)]"
             />
           </div>
           <div className="border-l border-[0.5px] border-[var(--line)] pl-4">
-            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Spent ₽</p>
+            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Spent</p>
             <DualAmount
               amount={spent.rub}
               currency="RUB"
               exchangeRate={monthData.exchangeRate}
               primaryClassName="text-[17px] font-semibold tracking-[-0.4px] text-[var(--red)]"
               secondaryClassName="mt-0.5 text-[11px] text-[var(--ink3)]"
+              primarySymbolClassName="text-[13px] font-normal text-[var(--red)]"
             />
-            <p className="mt-0.5 text-[10px] text-[var(--ink3)]">
+            <p className="mt-[3px] whitespace-nowrap text-[10px] text-[var(--ink3)]">
               of <span>₽</span>
               {formatNumber(plannedExpenses.rub)} planned
             </p>
           </div>
           <div className="border-l border-[0.5px] border-[var(--line)] pl-4">
-            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Pockets ₽</p>
+            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Pockets</p>
             <DualAmount
               amount={pockets.rub}
               currency="RUB"
               exchangeRate={monthData.exchangeRate}
               primaryClassName="text-[17px] font-semibold tracking-[-0.4px] text-[var(--blue)]"
               secondaryClassName="mt-0.5 text-[11px] text-[var(--ink3)]"
+              primarySymbolClassName="text-[13px] font-normal text-[var(--blue)]"
             />
           </div>
         </div>

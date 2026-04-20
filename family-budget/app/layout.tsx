@@ -6,7 +6,6 @@ import { BudgetProvider } from "@/components/BudgetProvider";
 import { PwaRegister } from "@/components/PwaRegister";
 
 const inter = Inter({
-  variable: "--font-inter",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
   display: "swap",
@@ -33,7 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" className="h-full antialiased">
-      <body className={`${inter.variable} min-h-full`}>
+      <body className={`${inter.className} min-h-full`}>
         <BudgetProvider>
           <PwaRegister />
           <AppFrame>{children}</AppFrame>
