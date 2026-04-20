@@ -1,167 +1,509 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { useMemo, useState } from "react";
 
-import { BudgetRow } from "@/components/BudgetRow";
-import { CurrencyDisplay } from "@/components/CurrencyDisplay";
-import { InlineEditable } from "@/components/InlineEditable";
 import { useBudget } from "@/components/BudgetProvider";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { calculateIncomeTotals, calculatePlannedExpenseTotals } from "@/lib/summary";
-import { IncomeItem } from "@/lib/types";
+import { convertCurrency, formatRub, formatUsd, toRub, toUsd } from "@/lib/currency";
+import { Currency } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
-function ownerLabel(owner: IncomeItem["owner"]) {
-  return owner === "milena" ? "Милена" : "Роксана";
+type IconKind = "income" | "rent" | "groceries" | "transport" | "entertainment" | "phone";
+
+function hasNumber(value: number | null): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function detectExpenseKind(name: string): IconKind {
+  const lowered = name.toLowerCase();
+  if (/(rent|аренд|кварт|жиль)/.test(lowered)) return "rent";
+  if (/(transport|бенз|такси|авто|машин|метро)/.test(lowered)) return "transport";
+  if (/(phone|телефон|связ|интернет|mobile)/.test(lowered)) return "phone";
+  if (/(entertain|развлеч|досуг|кино|игр)/.test(lowered)) return "entertainment";
+  return "groceries";
+}
+
+function getIconColors(kind: IconKind): { background: string; color: string } {
+  if (kind === "income") return { background: "var(--green-bg)", color: "var(--green)" };
+  if (kind === "rent") return { background: "var(--red-bg)", color: "var(--red)" };
+  if (kind === "transport") return { background: "var(--purple-bg)", color: "var(--purple)" };
+  if (kind === "phone") return { background: "var(--amber-bg)", color: "var(--amber)" };
+  if (kind === "entertainment") return { background: "var(--blue-bg)", color: "var(--blue)" };
+  return { background: "var(--green-bg)", color: "var(--green)" };
+}
+
+function IconGlyph({ kind }: { kind: IconKind }) {
+  if (kind === "rent") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 10.2 12 4l8 6.2v8.3a1 1 0 0 1-1 1h-5.1v-5.9h-3.8v5.9H5a1 1 0 0 1-1-1v-8.3Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (kind === "groceries") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="4" y="5" width="16" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M8 3.5v3M16 3.5v3M4 9h16M8 12.5h3M13 12.5h3M8 16h3M13 16h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (kind === "transport") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M6.5 15.5h11l-.8-4.2a2 2 0 0 0-2-1.6H9.3a2 2 0 0 0-2 1.6l-.8 4.2Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M6 15.5v2.2M18 15.5v2.2M8 12h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="8" cy="18" r="1" fill="currentColor" />
+        <circle cx="16" cy="18" r="1" fill="currentColor" />
+      </svg>
+    );
+  }
+
+  if (kind === "phone") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M5 8h14M5 12h14M5 16h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (kind === "entertainment") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="6" stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 4v16M4 12h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconWrap({ kind }: { kind: IconKind }) {
+  const colors = getIconColors(kind);
+  return (
+    <span
+      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
+      style={{ backgroundColor: colors.background, color: colors.color }}
+    >
+      <IconGlyph kind={kind} />
+    </span>
+  );
+}
+
+function EditableName({
+  value,
+  placeholder,
+  onCommit,
+}: {
+  value: string;
+  placeholder: string;
+  onCommit: (next: string) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  if (isEditing) {
+    return (
+      <input
+        autoFocus
+        type="text"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => {
+          onCommit(draft.trim());
+          setIsEditing(false);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            onCommit(draft.trim());
+            setIsEditing(false);
+          }
+        }}
+        className="w-full border-0 bg-transparent text-[14px] font-medium tracking-[-0.2px] text-[var(--ink)] outline-none"
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setDraft(value);
+        setIsEditing(true);
+      }}
+      className="w-full truncate text-left text-[14px] font-medium tracking-[-0.2px] text-[var(--ink)] outline-none"
+    >
+      {value.trim() || placeholder}
+    </button>
+  );
+}
+
+function DualAmount({
+  amount,
+  currency,
+  exchangeRate,
+}: {
+  amount: number | null;
+  currency: Currency;
+  exchangeRate: number;
+}) {
+  if (!hasNumber(amount)) {
+    return (
+      <div className="text-right">
+        <p className="text-[14px] font-semibold tracking-[-0.3px] text-[var(--ink)]">—</p>
+        <p className="mt-0.5 text-[11px] text-[var(--ink3)]">—</p>
+      </div>
+    );
+  }
+
+  const primary = currency === "USD" ? formatUsd(amount) : formatRub(amount);
+  const secondary =
+    currency === "USD"
+      ? formatRub(toRub(amount, "USD", exchangeRate))
+      : formatUsd(toUsd(amount, "RUB", exchangeRate));
+
+  return (
+    <div className="text-right">
+      <p className="text-[14px] font-semibold tracking-[-0.3px] text-[var(--ink)]">{primary}</p>
+      <p className="mt-0.5 text-[11px] text-[var(--ink3)]">{secondary}</p>
+    </div>
+  );
+}
+
+function EditableAmount({
+  amount,
+  currency,
+  exchangeRate,
+  onCommit,
+}: {
+  amount: number | null;
+  currency: Currency;
+  exchangeRate: number;
+  onCommit: (next: number | null) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(amount === null ? "" : String(amount));
+
+  if (isEditing) {
+    return (
+      <input
+        autoFocus
+        type="number"
+        inputMode="decimal"
+        step="0.01"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => {
+          if (draft.trim() === "") {
+            onCommit(null);
+          } else {
+            const parsed = Number.parseFloat(draft);
+            onCommit(Number.isFinite(parsed) ? parsed : amount);
+          }
+          setIsEditing(false);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            if (draft.trim() === "") {
+              onCommit(null);
+            } else {
+              const parsed = Number.parseFloat(draft);
+              onCommit(Number.isFinite(parsed) ? parsed : amount);
+            }
+            setIsEditing(false);
+          }
+        }}
+        className="w-[112px] border-0 bg-transparent text-right text-[14px] font-semibold tracking-[-0.3px] text-[var(--ink)] outline-none"
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setDraft(amount === null ? "" : String(amount));
+        setIsEditing(true);
+      }}
+      className="outline-none"
+    >
+      <DualAmount amount={amount} currency={currency} exchangeRate={exchangeRate} />
+    </button>
+  );
+}
+
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <p className="mb-[10px] mt-5 px-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+      {children}
+    </p>
+  );
+}
+
+function SectionTotal({
+  label,
+  rub,
+  usd,
+  tone,
+}: {
+  label: string;
+  rub: number;
+  usd: number;
+  tone: "income" | "expense";
+}) {
+  return (
+    <div className="flex items-center justify-between border-t border-[0.5px] border-[var(--line)] px-4 py-[13px]">
+      <p className="text-[13px] font-medium text-[var(--ink)]">{label}</p>
+      <div className="text-right">
+        <p
+          className={cn(
+            "text-[15px] font-bold tracking-[-0.3px]",
+            tone === "income" ? "text-[var(--green)]" : "text-[var(--ink)]",
+          )}
+        >
+          {formatRub(rub)}
+        </p>
+        <p className="mt-0.5 text-[11px] text-[var(--ink3)]">{formatUsd(usd)}</p>
+      </div>
+    </div>
+  );
 }
 
 export default function BudgetPage() {
-  const {
-    monthData,
-    updateExchangeRate,
-    updateIncome,
-    addIncome,
-    deleteIncome,
-    updateExpense,
-    addExpense,
-    deleteExpense,
-  } = useBudget();
+  const { monthData, updateIncome, addIncome, updateExpense, addExpense } = useBudget();
 
-  const incomeTotals = calculateIncomeTotals(monthData);
-  const plannedTotals = calculatePlannedExpenseTotals(monthData);
   const myIncomes = monthData.incomes.filter((income) => income.owner === "me");
   const milenaIncomes = monthData.incomes.filter((income) => income.owner === "milena");
 
+  const roksanaTotals = useMemo(
+    () =>
+      myIncomes.reduce(
+        (accumulator, income) => {
+          const amount = hasNumber(income.amount) ? income.amount : 0;
+          accumulator.rub += toRub(amount, income.currency, monthData.exchangeRate);
+          accumulator.usd += toUsd(amount, income.currency, monthData.exchangeRate);
+          return accumulator;
+        },
+        { rub: 0, usd: 0 },
+      ),
+    [monthData.exchangeRate, myIncomes],
+  );
+
+  const milenaTotals = useMemo(
+    () =>
+      milenaIncomes.reduce(
+        (accumulator, income) => {
+          const amount = hasNumber(income.amount) ? income.amount : 0;
+          accumulator.rub += toRub(amount, income.currency, monthData.exchangeRate);
+          accumulator.usd += toUsd(amount, income.currency, monthData.exchangeRate);
+          return accumulator;
+        },
+        { rub: 0, usd: 0 },
+      ),
+    [milenaIncomes, monthData.exchangeRate],
+  );
+
+  const expenseTotals = useMemo(
+    () =>
+      monthData.expenses.reduce(
+        (accumulator, expense) => {
+          const amount = hasNumber(expense.amount) ? expense.amount : 0;
+          accumulator.rub += toRub(amount, expense.currency, monthData.exchangeRate);
+          accumulator.usd += toUsd(amount, expense.currency, monthData.exchangeRate);
+          return accumulator;
+        },
+        { rub: 0, usd: 0 },
+      ),
+    [monthData.exchangeRate, monthData.expenses],
+  );
+
   return (
-    <div className="space-y-5">
-      <Card className="bg-white">
-        <CardHeader className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle>Курс валют</CardTitle>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">1 USD =</span>
-            <div className="min-w-32">
-              <InlineEditable
-                type="number"
-                value={monthData.exchangeRate}
-                onCommit={(value) => {
-                  if (typeof value === "number" && value > 0) {
-                    updateExchangeRate(value);
-                  }
-                }}
-                placeholder="92"
+    <div className="-mx-4 -mt-6 bg-[var(--bg)] px-4 pt-6 pb-4">
+      <div className="rounded-xl bg-[var(--blue-bg)] px-[14px] py-3 text-[12px] font-medium text-[var(--blue)]">
+        All amounts shown at $1 = ₽{monthData.exchangeRate}
+      </div>
+
+      <SectionLabel>Roksana income</SectionLabel>
+      <div className="mb-3 overflow-hidden rounded-2xl bg-[var(--white)]">
+        {myIncomes.map((income, index) => (
+          <div
+            key={income.id}
+            className={cn(
+              "flex min-h-[52px] items-center gap-3 px-4 py-[13px]",
+              index > 0 && "border-t border-[0.5px] border-[var(--line)]",
+            )}
+          >
+            <IconWrap kind="income" />
+            <div className="min-w-0 flex-1">
+              <EditableName
+                value={income.name}
+                placeholder="Income source"
+                onCommit={(next) => updateIncome(income.id, { name: next })}
               />
             </div>
-            <span className="text-muted-foreground">RUB</span>
-          </div>
-        </CardHeader>
-      </Card>
-
-      <Card className="bg-white">
-        <CardHeader>
-          <CardTitle>Доходы</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-slate-900">{ownerLabel("me")}</p>
-              <Button variant="outline" onClick={() => addIncome("me")}>
-                <Plus className="size-4" />
-                Добавить источник
-              </Button>
-            </div>
-            {myIncomes.map((income) => (
-              <BudgetRow
-                key={income.id}
-                name={income.name}
-                amount={income.amount}
-                currency={income.currency}
-                exchangeRate={monthData.exchangeRate}
-                namePlaceholder="Источник дохода"
-                amountPlaceholder="Сумма"
-                onNameChange={(value) => updateIncome(income.id, { name: value })}
-                onAmountChange={(value) => updateIncome(income.id, { amount: value })}
-                onCurrencyChange={(currency) => updateIncome(income.id, { currency })}
-                onDelete={myIncomes.length > 1 ? () => deleteIncome(income.id) : undefined}
-              />
-            ))}
-          </div>
-
-          <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-slate-900">{ownerLabel("milena")}</p>
-              <Button variant="outline" onClick={() => addIncome("milena")}>
-                <Plus className="size-4" />
-                Добавить источник
-              </Button>
-            </div>
-            {milenaIncomes.map((income) => (
-              <BudgetRow
-                key={income.id}
-                name={income.name}
-                amount={income.amount}
-                currency={income.currency}
-                exchangeRate={monthData.exchangeRate}
-                namePlaceholder="Источник дохода"
-                amountPlaceholder="Сумма"
-                onNameChange={(value) => updateIncome(income.id, { name: value })}
-                onAmountChange={(value) => updateIncome(income.id, { amount: value })}
-                onCurrencyChange={(currency) => updateIncome(income.id, { currency })}
-                onDelete={
-                  milenaIncomes.length > 1 ? () => deleteIncome(income.id) : undefined
-                }
-              />
-            ))}
-          </div>
-
-          <div className="rounded-lg bg-emerald-50 px-3 py-2">
-            <p className="text-xs text-emerald-700">Итого доходы</p>
-            <CurrencyDisplay
-              amount={incomeTotals.rub}
-              currency="RUB"
+            <EditableAmount
+              amount={income.amount}
+              currency={income.currency}
               exchangeRate={monthData.exchangeRate}
-              rubClassName="text-lg font-semibold text-emerald-700"
-              usdClassName="text-xs text-emerald-700/80"
+              onCommit={(next) => updateIncome(income.id, { amount: next })}
             />
+            <button
+              type="button"
+              onClick={() => {
+                const nextCurrency: Currency = income.currency === "USD" ? "RUB" : "USD";
+                const nextAmount = hasNumber(income.amount)
+                  ? convertCurrency(
+                      income.amount,
+                      income.currency,
+                      nextCurrency,
+                      monthData.exchangeRate,
+                    )
+                  : income.amount;
+                updateIncome(income.id, { currency: nextCurrency, amount: nextAmount });
+              }}
+              className="ml-[6px] rounded-[5px] border border-[0.5px] border-[var(--line2)] bg-[var(--bg)] px-[7px] py-[3px] text-[10px] font-semibold text-[var(--ink2)]"
+            >
+              {income.currency}
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        ))}
+        <button
+          type="button"
+          onClick={() => addIncome("me")}
+          className="w-full border-t border-[0.5px] border-[var(--line)] bg-transparent px-4 py-3 text-left text-[13px] font-medium text-[var(--blue)]"
+        >
+          + Add income
+        </button>
+        <SectionTotal
+          label="Total income"
+          rub={roksanaTotals.rub}
+          usd={roksanaTotals.usd}
+          tone="income"
+        />
+      </div>
 
-      <Card className="bg-white">
-        <CardHeader className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle>Плановые расходы</CardTitle>
-          <Button variant="outline" onClick={addExpense}>
-            <Plus className="size-4" />
-            Добавить категорию
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {monthData.expenses.map((expense) => (
-            <BudgetRow
-              key={expense.id}
-              name={expense.name}
+      <SectionLabel>Milena income</SectionLabel>
+      <div className="mb-3 overflow-hidden rounded-2xl bg-[var(--white)]">
+        {milenaIncomes.map((income, index) => (
+          <div
+            key={income.id}
+            className={cn(
+              "flex min-h-[52px] items-center gap-3 px-4 py-[13px]",
+              index > 0 && "border-t border-[0.5px] border-[var(--line)]",
+            )}
+          >
+            <IconWrap kind="income" />
+            <div className="min-w-0 flex-1">
+              <EditableName
+                value={income.name}
+                placeholder="Income source"
+                onCommit={(next) => updateIncome(income.id, { name: next })}
+              />
+            </div>
+            <EditableAmount
+              amount={income.amount}
+              currency={income.currency}
+              exchangeRate={monthData.exchangeRate}
+              onCommit={(next) => updateIncome(income.id, { amount: next })}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const nextCurrency: Currency = income.currency === "USD" ? "RUB" : "USD";
+                const nextAmount = hasNumber(income.amount)
+                  ? convertCurrency(
+                      income.amount,
+                      income.currency,
+                      nextCurrency,
+                      monthData.exchangeRate,
+                    )
+                  : income.amount;
+                updateIncome(income.id, { currency: nextCurrency, amount: nextAmount });
+              }}
+              className="ml-[6px] rounded-[5px] border border-[0.5px] border-[var(--line2)] bg-[var(--bg)] px-[7px] py-[3px] text-[10px] font-semibold text-[var(--ink2)]"
+            >
+              {income.currency}
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => addIncome("milena")}
+          className="w-full border-t border-[0.5px] border-[var(--line)] bg-transparent px-4 py-3 text-left text-[13px] font-medium text-[var(--blue)]"
+        >
+          + Add income
+        </button>
+        <SectionTotal
+          label="Total income"
+          rub={milenaTotals.rub}
+          usd={milenaTotals.usd}
+          tone="income"
+        />
+      </div>
+
+      <SectionLabel>Expense categories</SectionLabel>
+      <div className="mb-3 overflow-hidden rounded-2xl bg-[var(--white)]">
+        {monthData.expenses.map((expense, index) => (
+          <div
+            key={expense.id}
+            className={cn(
+              "flex min-h-[52px] items-center gap-3 px-4 py-[13px]",
+              index > 0 && "border-t border-[0.5px] border-[var(--line)]",
+            )}
+          >
+            <IconWrap kind={detectExpenseKind(expense.name)} />
+            <div className="min-w-0 flex-1">
+              <EditableName
+                value={expense.name}
+                placeholder="Category name"
+                onCommit={(next) => updateExpense(expense.id, { name: next })}
+              />
+            </div>
+            <EditableAmount
               amount={expense.amount}
               currency={expense.currency}
               exchangeRate={monthData.exchangeRate}
-              namePlaceholder="Название категории"
-              amountPlaceholder="Сумма"
-              onNameChange={(value) => updateExpense(expense.id, { name: value })}
-              onAmountChange={(value) => updateExpense(expense.id, { amount: value })}
-              onCurrencyChange={(currency) => updateExpense(expense.id, { currency })}
-              onDelete={() => deleteExpense(expense.id)}
+              onCommit={(next) => updateExpense(expense.id, { amount: next })}
             />
-          ))}
-          <div className="rounded-lg bg-rose-50 px-3 py-2">
-            <p className="text-xs text-rose-700">Итого плановые расходы</p>
-            <CurrencyDisplay
-              amount={plannedTotals.rub}
-              currency="RUB"
-              exchangeRate={monthData.exchangeRate}
-              rubClassName="text-lg font-semibold text-rose-700"
-              usdClassName="text-xs text-rose-700/80"
-            />
+            <button
+              type="button"
+              onClick={() => {
+                const nextCurrency: Currency = expense.currency === "USD" ? "RUB" : "USD";
+                const nextAmount = hasNumber(expense.amount)
+                  ? convertCurrency(
+                      expense.amount,
+                      expense.currency,
+                      nextCurrency,
+                      monthData.exchangeRate,
+                    )
+                  : expense.amount;
+                updateExpense(expense.id, { currency: nextCurrency, amount: nextAmount });
+              }}
+              className="ml-[6px] rounded-[5px] border border-[0.5px] border-[var(--line2)] bg-[var(--bg)] px-[7px] py-[3px] text-[10px] font-semibold text-[var(--ink2)]"
+            >
+              {expense.currency}
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        ))}
+        <button
+          type="button"
+          onClick={addExpense}
+          className="w-full border-t border-[0.5px] border-[var(--line)] bg-transparent px-4 py-3 text-left text-[13px] font-medium text-[var(--blue)]"
+        >
+          + Add category
+        </button>
+        <SectionTotal
+          label="Total expenses"
+          rub={expenseTotals.rub}
+          usd={expenseTotals.usd}
+          tone="expense"
+        />
+      </div>
     </div>
   );
 }
