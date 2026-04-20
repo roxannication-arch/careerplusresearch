@@ -15,6 +15,13 @@ import { cn } from "@/lib/utils";
 
 type IconKind = "rent" | "groceries" | "transport" | "entertainment" | "phone";
 
+const rubCompactFormatter = new Intl.NumberFormat("ru-RU", {
+  maximumFractionDigits: 0,
+});
+const usdCompactFormatter = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0,
+});
+
 function detectExpenseKind(name: string): IconKind {
   const lowered = name.toLowerCase();
   if (/(rent|аренд|кварт|жиль)/.test(lowered)) return "rent";
@@ -88,6 +95,13 @@ function IconWrap({ kind }: { kind: IconKind }) {
   );
 }
 
+function formatCompactAmount(value: number, currency: Currency): string {
+  if (currency === "USD") {
+    return `$${usdCompactFormatter.format(Math.abs(value))}`;
+  }
+  return `₽${rubCompactFormatter.format(Math.abs(value))}`;
+}
+
 function DualAmount({
   amount,
   currency,
@@ -104,11 +118,10 @@ function DualAmount({
   negative?: boolean;
 }) {
   const signed = negative ? -Math.abs(amount) : amount;
-  const primary = currency === "USD" ? formatUsd(signed) : formatRub(signed);
-  const secondary =
-    currency === "USD"
-      ? formatRub(toRub(signed, "USD", exchangeRate))
-      : formatUsd(toUsd(signed, "RUB", exchangeRate));
+  const sign = signed < 0 ? "−" : "";
+  const primary = `${sign}${formatCompactAmount(signed, currency)}`;
+  const converted = currency === "USD" ? toRub(signed, "USD", exchangeRate) : toUsd(signed, "RUB", exchangeRate);
+  const secondary = `${sign}${formatCompactAmount(converted, currency === "USD" ? "RUB" : "USD")}`;
 
   return (
     <div className="text-right">
@@ -118,9 +131,9 @@ function DualAmount({
   );
 }
 
-function BigValue({ value }: { value: string }) {
+function BigValue({ value, className }: { value: string; className: string }) {
   return (
-    <span className="text-[38px] font-light leading-none tracking-[-1.5px] text-[var(--ink)]">
+    <span className={className}>
       {Array.from(value).map((char, index) =>
         /\d/.test(char) ? (
           <b key={`${char}-${index}`} className="font-bold">
@@ -186,15 +199,23 @@ export default function DashboardPage() {
   return (
     <div className="-mx-4 -mt-6 bg-[var(--bg)] px-4 pt-6 pb-4">
       <section className="mb-3 rounded-[20px] bg-[var(--white)] px-5 py-[22px]">
-        <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Available this month</p>
-        <BigValue value={formatRub(available.rub)} />
-        <p className="mt-[5px] text-[13px] text-[var(--ink3)]">{formatUsd(available.usd)}</p>
+        <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Total income</p>
+        <div className="flex items-end gap-1.5">
+          <BigValue
+            value={rubCompactFormatter.format(income.rub)}
+            className="text-[38px] font-bold leading-none tracking-[-1.5px] text-[var(--green)]"
+          />
+          <span className="pb-1 text-[22px] font-light text-[var(--ink3)]">₽</span>
+        </div>
+        <p className="mt-[5px] text-[13px] text-[var(--ink3)]">
+          ${usdCompactFormatter.format(income.usd)}
+        </p>
         <div className="my-[18px] h-[0.5px] bg-[var(--line)]" />
         <div className="grid grid-cols-3 gap-0">
           <div>
-            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Income</p>
+            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Available</p>
             <DualAmount
-              amount={income.rub}
+              amount={available.rub}
               currency="RUB"
               exchangeRate={monthData.exchangeRate}
               primaryClassName="text-[16px] font-semibold tracking-[-0.4px] text-[var(--green)]"
