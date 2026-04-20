@@ -385,7 +385,10 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
 
   const addTransaction = useCallback(
     (input: Omit<Transaction, "id">) => {
-      if (!Number.isFinite(input.amount) || input.amount <= 0 || !input.categoryId) {
+      if (!Number.isFinite(input.amount) || input.amount <= 0) {
+        return;
+      }
+      if (input.type === "expense" && !input.categoryId) {
         return;
       }
 

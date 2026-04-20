@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { toRub, toUsd } from "@/lib/currency";
 import {
   calculateIncomeTotals,
+  calculateIncomeTransactionTotals,
   calculatePlannedExpenseTotals,
   calculatePocketTotals,
 } from "@/lib/summary";
@@ -174,10 +175,13 @@ function formatDateTime(dateValue: string): string {
 
 export default function DashboardPage() {
   const { monthData } = useBudget();
-  const income = useMemo(() => calculateIncomeTotals(monthData), [monthData]);
+  const plannedIncome = useMemo(() => calculateIncomeTotals(monthData), [monthData]);
+  const income = useMemo(() => calculateIncomeTransactionTotals(monthData), [monthData]);
   const spent = useMemo(
     () =>
-      monthData.transactions.reduce(
+      monthData.transactions
+        .filter((transaction) => transaction.type !== "income")
+        .reduce(
         (accumulator, transaction) => ({
           rub: accumulator.rub + toRub(transaction.amount, transaction.currency, monthData.exchangeRate),
           usd: accumulator.usd + toUsd(transaction.amount, transaction.currency, monthData.exchangeRate),
@@ -196,6 +200,7 @@ export default function DashboardPage() {
     [income, spent, pockets],
   );
   const totalIncome = income.rub;
+  const totalIncomePlanned = plannedIncome.rub;
   const actualSpent = spent.rub;
   const totalPlanned = plannedExpenses.rub;
   const pocketTotal = pockets.rub;
@@ -212,6 +217,7 @@ export default function DashboardPage() {
 
   const recentTransactions = useMemo(() => {
     return [...monthData.transactions]
+      .filter((transaction) => transaction.type !== "income")
       .sort((left, right) => {
         const leftTs = new Date(`${left.date}T00:00:00`).getTime();
         const rightTs = new Date(`${right.date}T00:00:00`).getTime();
@@ -256,6 +262,9 @@ export default function DashboardPage() {
             </div>
             <div style={{ fontSize: "11px", color: "#AEAEB2", marginTop: "2px" }}>
               {(totalIncome / rate).toLocaleString("en-US", { maximumFractionDigits: 0 })} $
+            </div>
+            <div style={{ fontSize: "10px", color: "#AEAEB2", marginTop: "3px", whiteSpace: "nowrap" }}>
+              of {totalIncomePlanned.toLocaleString("en-US", { maximumFractionDigits: 0 })} ₽ planned
             </div>
           </div>
 

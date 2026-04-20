@@ -28,6 +28,7 @@ export interface Transaction {
   amount: number;
   currency: Currency;
   categoryId: string;
+  type: "expense" | "income";
   date: string;
   note: string;
 }

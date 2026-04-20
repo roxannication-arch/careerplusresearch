@@ -5,7 +5,11 @@ import { useMemo } from "react";
 
 import { useBudget } from "@/components/BudgetProvider";
 import { toRub, toUsd } from "@/lib/currency";
-import { calculatePlannedExpenseTotals, calculateTransactionTotals } from "@/lib/summary";
+import {
+  calculateIncomeTotals,
+  calculatePlannedExpenseTotals,
+  calculateTransactionTotals,
+} from "@/lib/summary";
 import { Currency } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -151,8 +155,32 @@ function AmountPair({
 
 export default function PlanFactPage() {
   const { monthData } = useBudget();
+  const plannedIncomeTotals = useMemo(() => calculateIncomeTotals(monthData), [monthData]);
+  const actualIncomeTotals = useMemo(
+    () =>
+      monthData.transactions
+        .filter((transaction) => transaction.type === "income")
+        .reduce(
+          (accumulator, transaction) => ({
+            rub: accumulator.rub + toRub(transaction.amount, transaction.currency, monthData.exchangeRate),
+            usd: accumulator.usd + toUsd(transaction.amount, transaction.currency, monthData.exchangeRate),
+          }),
+          { rub: 0, usd: 0 },
+        ),
+    [monthData.exchangeRate, monthData.transactions],
+  );
   const plannedTotals = useMemo(() => calculatePlannedExpenseTotals(monthData), [monthData]);
   const actualTotals = useMemo(() => calculateTransactionTotals(monthData), [monthData]);
+
+  const incomeAchieved = plannedIncomeTotals.rub > 0
+    ? (actualIncomeTotals.rub / plannedIncomeTotals.rub) * 100
+    : 0;
+  const incomeTone =
+    incomeAchieved >= 100
+      ? "text-[var(--green)]"
+      : incomeAchieved >= 50
+        ? "text-[var(--amber)]"
+        : "text-[var(--red)]";
 
   const remainingRub = plannedTotals.rub - actualTotals.rub;
   const budgetUsed = plannedTotals.rub > 0 ? (actualTotals.rub / plannedTotals.rub) * 100 : 0;
@@ -162,6 +190,9 @@ export default function PlanFactPage() {
   const actualByCategory = useMemo(() => {
     const grouped = new Map<string, { rub: number; usd: number }>();
     for (const transaction of monthData.transactions) {
+      if (transaction.type !== "expense") {
+        continue;
+      }
       const existing = grouped.get(transaction.categoryId) ?? { rub: 0, usd: 0 };
       existing.rub += toRub(transaction.amount, transaction.currency, monthData.exchangeRate);
       existing.usd += toUsd(transaction.amount, transaction.currency, monthData.exchangeRate);
@@ -218,10 +249,152 @@ export default function PlanFactPage() {
     [actualByCategory, monthData.exchangeRate, monthData.expenses],
   );
 
-  const hasTransactions = monthData.transactions.length > 0;
+  const incomeActualBySource = useMemo(() => {
+    const grouped = new Map<string, { rub: number; usd: number }>();
+    for (const transaction of monthData.transactions) {
+      if (transaction.type !== "income") {
+        continue;
+      }
+      const source = transaction.categoryId.trim() || "Other";
+      const existing = grouped.get(source) ?? { rub: 0, usd: 0 };
+      existing.rub += toRub(transaction.amount, transaction.currency, monthData.exchangeRate);
+      existing.usd += toUsd(transaction.amount, transaction.currency, monthData.exchangeRate);
+      grouped.set(source, existing);
+    }
+    return grouped;
+  }, [monthData.exchangeRate, monthData.transactions]);
+
+  const incomeCards = useMemo(() => {
+    const keys = Array.from(
+      new Set([
+        ...monthData.incomes.map((income) => income.name.trim()).filter(Boolean),
+        ...incomeActualBySource.keys(),
+      ]),
+    );
+
+    return keys.map((sourceLabel) => {
+      const matchingRows = monthData.incomes.filter((income) => income.name.trim() === sourceLabel);
+      const plannedRub = matchingRows.reduce(
+        (sum, row) =>
+          sum + toRub(typeof row.amount === "number" && Number.isFinite(row.amount) ? row.amount : 0, row.currency, monthData.exchangeRate),
+        0,
+      );
+      const plannedUsd = matchingRows.reduce(
+        (sum, row) =>
+          sum + toUsd(typeof row.amount === "number" && Number.isFinite(row.amount) ? row.amount : 0, row.currency, monthData.exchangeRate),
+        0,
+      );
+      const actual = incomeActualBySource.get(sourceLabel) ?? { rub: 0, usd: 0 };
+      const diff = actual.rub - plannedRub;
+      const progress = plannedRub > 0 ? Math.min((actual.rub / plannedRub) * 100, 100) : 0;
+      const badgeClass =
+        diff > 0
+          ? "bg-[var(--green-bg)] text-[var(--green)]"
+          : diff < 0
+            ? "bg-[var(--red-bg)] text-[var(--red)]"
+            : "bg-[var(--bg)] text-[var(--ink3)]";
+      const badgeText =
+        diff > 0
+          ? `+${formatCompactCurrency(diff, "RUB")} ahead`
+          : diff < 0
+            ? `−${formatCompactCurrency(Math.abs(diff), "RUB")} behind`
+            : "On track";
+
+      return {
+        id: sourceLabel,
+        label: sourceLabel,
+        plannedRub,
+        plannedUsd,
+        actualRub: actual.rub,
+        actualUsd: actual.usd,
+        badgeClass,
+        badgeText,
+        progress,
+      };
+    });
+  }, [incomeActualBySource, monthData.exchangeRate, monthData.incomes]);
+
+  const hasExpenseTransactions = monthData.transactions.some((transaction) => transaction.type === "expense");
 
   return (
     <div className="-mx-4 -mt-6 bg-[var(--bg)] px-4 pt-6 pb-4">
+      <section className="mb-3 rounded-[20px] bg-[var(--white)] px-5 py-[18px]">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Earned so far</p>
+            <BoldDigits
+              value={formatCompactCurrency(actualIncomeTotals.rub, "RUB")}
+              className="text-[32px] font-light leading-none tracking-[-1px] text-[var(--ink)]"
+            />
+            <p className="mt-1 text-[12px] text-[var(--ink3)]">
+              {formatCompactCurrency(actualIncomeTotals.usd, "USD")}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Income goal</p>
+            <p className={cn("text-[28px] font-bold tracking-[-0.5px]", incomeTone)}>
+              {Math.max(0, Math.round(incomeAchieved))}%
+            </p>
+            <p className="mt-1 text-[12px] text-[var(--ink3)]">
+              of {formatCompactCurrency(plannedIncomeTotals.rub, "RUB")} plan
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <p className="mb-[10px] mt-5 px-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+        Income by source
+      </p>
+      {incomeCards.length === 0 ? (
+        <div className="mb-3 rounded-2xl bg-[var(--white)] px-4 py-4 text-[13px] text-[var(--ink3)]">
+          No income sources yet.
+        </div>
+      ) : (
+        incomeCards.map((card) => (
+          <article key={card.id} className="mb-[10px] rounded-2xl bg-[var(--white)] p-4">
+            <div className="mb-[14px] flex items-center gap-3">
+              <IconWrap kind="groceries" />
+              <p className="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-[-0.3px] text-[var(--ink)]">
+                {card.label}
+              </p>
+              <span className={cn("shrink-0 rounded-[20px] px-[9px] py-1 text-[11px] font-semibold", card.badgeClass)}>
+                {card.badgeText}
+              </span>
+            </div>
+
+            <div className="mb-3 grid grid-cols-2 gap-2">
+              <div className="rounded-[10px] bg-[var(--bg)] px-[13px] py-[11px]">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+                  Planned
+                </p>
+                <AmountPair
+                  primary={formatCompactCurrency(card.plannedRub, "RUB")}
+                  secondary={formatCompactCurrency(card.plannedUsd, "USD")}
+                  primaryClassName="text-[16px] font-bold tracking-[-0.4px] text-[var(--ink)]"
+                />
+              </div>
+              <div className="rounded-[10px] bg-[var(--bg)] px-[13px] py-[11px]">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+                  Actual
+                </p>
+                <AmountPair
+                  primary={formatCompactCurrency(card.actualRub, "RUB")}
+                  secondary={formatCompactCurrency(card.actualUsd, "USD")}
+                  primaryClassName="text-[16px] font-bold tracking-[-0.4px] text-[var(--ink)]"
+                />
+              </div>
+            </div>
+
+            <div className="h-[3px] overflow-hidden rounded-[2px] bg-[var(--bg)]">
+              <div
+                className="h-full rounded-[2px] bg-[var(--green)]"
+                style={{ width: `${card.progress}%` }}
+              />
+            </div>
+          </article>
+        ))
+      )}
+
       <section className="mb-3 rounded-[20px] bg-[var(--white)] px-5 py-[18px]">
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -250,7 +423,7 @@ export default function PlanFactPage() {
         </div>
       </section>
 
-      {hasTransactions ? (
+      {hasExpenseTransactions ? (
         <>
           <p className="mb-[10px] mt-5 px-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
             By category

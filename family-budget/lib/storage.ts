@@ -145,10 +145,13 @@ function normalizePocket(item: unknown): Pocket {
 
 function normalizeTransaction(item: unknown): Transaction {
   const source = (item ?? {}) as Partial<Transaction>;
+  const rawType = (source as { type?: unknown }).type;
+  const normalizedType = rawType === "income" ? "income" : "expense";
   return {
     id: normalizeId(source.id),
     amount: normalizeNumber(source.amount),
     currency: ensureCurrency(source.currency),
+    type: normalizedType,
     categoryId: normalizeName(source.categoryId),
     date: normalizeDate(source.date),
     note: normalizeName(source.note),
