@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useBudget } from "@/components/BudgetProvider";
 import { convertCurrency, toRub, toUsd } from "@/lib/currency";
@@ -127,11 +127,22 @@ function IconWrap({ kind }: { kind: IconKind }) {
 export default function TransactionsPage() {
   const { monthData, addTransaction } = useBudget();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const [draftCategoryFilter, setDraftCategoryFilter] = useState("all");
+  const [draftDateFrom, setDraftDateFrom] = useState("");
+  const [draftDateTo, setDraftDateTo] = useState("");
+
   const [amountInput, setAmountInput] = useState("");
   const [currency, setCurrency] = useState<Currency>("RUB");
   const [note, setNote] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [categoryId, setCategoryId] = useState(monthData.expenses[0]?.id ?? "");
+  const filterContainerRef = useRef<HTMLDivElement | null>(null);
 
   const categoryLabelMap = new Map(
     monthData.expenses.map((expense, index) => [
@@ -157,11 +168,52 @@ export default function TransactionsPage() {
         ).replace("−", "")
     : null;
 
+  const hasActiveFilters = categoryFilter !== "all" || Boolean(dateFrom) || Boolean(dateTo);
+
+  useEffect(() => {
+    if (!isFilterOpen) {
+      return;
+    }
+
+    const handleOutside = (event: MouseEvent) => {
+      if (!filterContainerRef.current?.contains(event.target as Node)) {
+        setIsFilterOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutside);
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsFilterOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isFilterOpen]);
+
+  const filteredTransactions = useMemo(
+    () =>
+      monthData.transactions.filter((transaction) => {
+        if (categoryFilter !== "all" && transaction.categoryId !== categoryFilter) {
+          return false;
+        }
+        if (dateFrom && transaction.date < dateFrom) {
+          return false;
+        }
+        if (dateTo && transaction.date > dateTo) {
+          return false;
+        }
+        return true;
+      }),
+    [categoryFilter, dateFrom, dateTo, monthData.transactions],
+  );
+
   const groupedTransactions = useMemo(() => {
-    const sorted = [...monthData.transactions].sort((left, right) =>
-      right.date.localeCompare(left.date),
-    );
-    const grouped = new Map<string, typeof monthData.transactions>();
+    const sorted = [...filteredTransactions].sort((left, right) => right.date.localeCompare(left.date));
+    const grouped = new Map<string, typeof filteredTransactions>();
     for (const transaction of sorted) {
       const list = grouped.get(transaction.date) ?? [];
       list.push(transaction);
@@ -172,10 +224,118 @@ export default function TransactionsPage() {
       label: formatDateGroupLabel(dateKey),
       transactions,
     }));
-  }, [monthData.transactions]);
+  }, [filteredTransactions]);
 
   return (
     <div className="-mx-4 -mt-6 bg-[var(--bg)] px-4 pt-6 pb-[100px]">
+      <div className="relative mb-3 flex justify-end" ref={filterContainerRef}>
+        <button
+          type="button"
+          onClick={() => {
+            if (isFilterOpen) {
+              setIsFilterOpen(false);
+              return;
+            }
+            setDraftCategoryFilter(categoryFilter);
+            setDraftDateFrom(dateFrom);
+            setDraftDateTo(dateTo);
+            setIsFilterOpen(true);
+          }}
+          className="relative rounded-[10px] border border-[0.5px] border-[var(--line2)] bg-[var(--white)] p-2 text-[var(--ink3)]"
+          aria-label="Open filters"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M4 6.5h16M7.5 12h9M10.5 17.5h3"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+            />
+          </svg>
+          {hasActiveFilters ? (
+            <span className="absolute top-1 right-1 inline-flex h-2 w-2 rounded-full bg-[var(--blue)]" />
+          ) : null}
+        </button>
+
+        <div
+          className={cn(
+            "absolute top-[calc(100%+8px)] right-0 z-[115] w-[min(320px,calc(100vw-32px))] rounded-[14px] border border-[0.5px] border-[var(--line2)] bg-[var(--white)] p-4 transition-all duration-150 ease-out",
+            isFilterOpen ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-2 opacity-0",
+          )}
+        >
+          <div className="mb-3">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+              Category
+            </p>
+            <select
+              value={draftCategoryFilter}
+              onChange={(event) => setDraftCategoryFilter(event.target.value)}
+              className="w-full rounded-[8px] border-0 bg-[var(--bg)] px-[10px] py-[10px] text-[13px] text-[var(--ink)] outline-none"
+            >
+              <option value="all">All categories</option>
+              {monthData.expenses.map((expense) => (
+                <option key={expense.id} value={expense.id}>
+                  {categoryLabelMap.get(expense.id)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+                Date from
+              </p>
+              <input
+                type="date"
+                value={draftDateFrom}
+                onChange={(event) => setDraftDateFrom(event.target.value)}
+                className="w-full rounded-[8px] border-0 bg-[var(--bg)] px-[10px] py-[10px] text-[13px] text-[var(--ink)] outline-none"
+              />
+            </div>
+            <div>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+                Date to
+              </p>
+              <input
+                type="date"
+                value={draftDateTo}
+                onChange={(event) => setDraftDateTo(event.target.value)}
+                className="w-full rounded-[8px] border-0 bg-[var(--bg)] px-[10px] py-[10px] text-[13px] text-[var(--ink)] outline-none"
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCategoryFilter(draftCategoryFilter);
+              setDateFrom(draftDateFrom);
+              setDateTo(draftDateTo);
+              setIsFilterOpen(false);
+            }}
+            className="mt-3 w-full rounded-[10px] bg-[var(--blue)] px-4 py-2.5 text-[13px] font-semibold text-white"
+          >
+            Apply
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCategoryFilter("all");
+              setDateFrom("");
+              setDateTo("");
+              setDraftCategoryFilter("all");
+              setDraftDateFrom("");
+              setDraftDateTo("");
+            }}
+            className="mt-2 block w-full text-center text-[12px] text-[var(--ink3)]"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+
       {groupedTransactions.length === 0 ? (
         <div className="rounded-2xl bg-[var(--white)] px-4 py-4 text-[13px] text-[var(--ink3)]">
           No expenses yet.
