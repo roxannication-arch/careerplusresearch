@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppFrame } from "@/components/AppFrame";
 import { BudgetProvider } from "@/components/BudgetProvider";
 import { PwaRegister } from "@/components/PwaRegister";
 
-const manrope = Manrope({
-  variable: "--font-manrope",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Семейный бюджет · UI v3",
+  title: "Budget",
   description: "Планирование доходов, трат и покетов",
   applicationName: "Семейный бюджет",
   appleWebApp: {
@@ -31,8 +32,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" className={`${manrope.variable} h-full antialiased`}>
-      <body className="min-h-full">
+    <html lang="ru" className="h-full antialiased">
+      <body className={`${inter.variable} min-h-full`}>
         <BudgetProvider>
           <PwaRegister />
           <AppFrame>{children}</AppFrame>
