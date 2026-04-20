@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
-import { formatRub, formatUsd, toRub, toUsd } from "@/lib/currency";
+import { toRub, toUsd } from "@/lib/currency";
 import {
   calculateIncomeTotals,
   calculatePlannedExpenseTotals,
@@ -15,10 +15,7 @@ import { cn } from "@/lib/utils";
 
 type IconKind = "rent" | "groceries" | "transport" | "entertainment" | "phone";
 
-const rubCompactFormatter = new Intl.NumberFormat("ru-RU", {
-  maximumFractionDigits: 0,
-});
-const usdCompactFormatter = new Intl.NumberFormat("en-US", {
+const numberFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
@@ -95,11 +92,8 @@ function IconWrap({ kind }: { kind: IconKind }) {
   );
 }
 
-function formatCompactAmount(value: number, currency: Currency): string {
-  if (currency === "USD") {
-    return `$${usdCompactFormatter.format(Math.abs(value))}`;
-  }
-  return `₽${rubCompactFormatter.format(Math.abs(value))}`;
+function formatNumber(value: number): string {
+  return numberFormatter.format(Math.abs(Math.round(value)));
 }
 
 function DualAmount({
@@ -118,15 +112,25 @@ function DualAmount({
   negative?: boolean;
 }) {
   const signed = negative ? -Math.abs(amount) : amount;
-  const sign = signed < 0 ? "−" : "";
-  const primary = `${sign}${formatCompactAmount(signed, currency)}`;
+  const primarySign = signed < 0 ? "−" : "";
   const converted = currency === "USD" ? toRub(signed, "USD", exchangeRate) : toUsd(signed, "RUB", exchangeRate);
-  const secondary = `${sign}${formatCompactAmount(converted, currency === "USD" ? "RUB" : "USD")}`;
+  const secondarySign = converted < 0 ? "−" : "";
+  const secondaryCurrency = currency === "USD" ? "RUB" : "USD";
+  const primarySymbol = currency === "USD" ? "$" : "₽";
+  const secondarySymbol = secondaryCurrency === "USD" ? "$" : "₽";
 
   return (
     <div className="text-right">
-      <p className={primaryClassName}>{primary}</p>
-      <p className={secondaryClassName}>{secondary}</p>
+      <p className={primaryClassName}>
+        {primarySign}
+        {formatNumber(signed)}
+        <span className="ml-1 font-light text-[0.85em]">{primarySymbol}</span>
+      </p>
+      <p className={secondaryClassName}>
+        {secondarySign}
+        {formatNumber(converted)}
+        <span className="ml-1">{secondarySymbol}</span>
+      </p>
     </div>
   );
 }
@@ -136,7 +140,7 @@ function BigValue({ value, className }: { value: string; className: string }) {
     <span className={className}>
       {Array.from(value).map((char, index) =>
         /\d/.test(char) ? (
-          <b key={`${char}-${index}`} className="font-bold">
+          <b key={`${char}-${index}`} className="font-semibold">
             {char}
           </b>
         ) : (
@@ -167,14 +171,25 @@ function formatDateTime(dateValue: string): string {
 export default function DashboardPage() {
   const { monthData } = useBudget();
   const income = useMemo(() => calculateIncomeTotals(monthData), [monthData]);
+  const spent = useMemo(
+    () =>
+      monthData.transactions.reduce(
+        (accumulator, transaction) => ({
+          rub: accumulator.rub + toRub(transaction.amount, transaction.currency, monthData.exchangeRate),
+          usd: accumulator.usd + toUsd(transaction.amount, transaction.currency, monthData.exchangeRate),
+        }),
+        { rub: 0, usd: 0 },
+      ),
+    [monthData.exchangeRate, monthData.transactions],
+  );
   const plannedExpenses = useMemo(() => calculatePlannedExpenseTotals(monthData), [monthData]);
   const pockets = useMemo(() => calculatePocketTotals(monthData), [monthData]);
   const available = useMemo(
     () => ({
-      rub: income.rub - plannedExpenses.rub - pockets.rub,
-      usd: income.usd - plannedExpenses.usd - pockets.usd,
+      rub: income.rub - spent.rub - pockets.rub,
+      usd: income.usd - spent.usd - pockets.usd,
     }),
-    [income, plannedExpenses, pockets],
+    [income, spent, pockets],
   );
 
   const categoryNameById = useMemo(
@@ -198,47 +213,54 @@ export default function DashboardPage() {
 
   return (
     <div className="-mx-4 -mt-6 bg-[var(--bg)] px-4 pt-6 pb-4">
-      <section className="mb-3 rounded-[20px] bg-[var(--white)] px-5 py-[22px]">
-        <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Total income</p>
+      <section className="mb-3 rounded-[20px] bg-[var(--white)] px-5 py-6">
+        <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Available</p>
         <div className="flex items-end gap-1.5">
           <BigValue
-            value={rubCompactFormatter.format(income.rub)}
-            className="text-[38px] font-bold leading-none tracking-[-1.5px] text-[var(--green)]"
+            value={formatNumber(available.rub)}
+            className={cn(
+              "text-[40px] font-light leading-none tracking-[-1.5px]",
+              available.rub < 0 ? "text-[var(--red)]" : "text-[var(--ink)]",
+            )}
           />
-          <span className="pb-1 text-[22px] font-light text-[var(--ink3)]">₽</span>
+          <span className="mb-1 ml-1 text-[20px] font-light text-[var(--ink3)]">₽</span>
         </div>
         <p className="mt-[5px] text-[13px] text-[var(--ink3)]">
-          ${usdCompactFormatter.format(income.usd)}
+          {formatNumber(available.usd)} $
         </p>
         <div className="my-[18px] h-[0.5px] bg-[var(--line)]" />
         <div className="grid grid-cols-3 gap-0">
           <div>
-            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Available</p>
+            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Income ₽</p>
             <DualAmount
-              amount={available.rub}
+              amount={income.rub}
               currency="RUB"
               exchangeRate={monthData.exchangeRate}
-              primaryClassName="text-[16px] font-semibold tracking-[-0.4px] text-[var(--green)]"
+              primaryClassName="text-[17px] font-semibold tracking-[-0.4px] text-[var(--green)]"
               secondaryClassName="mt-0.5 text-[11px] text-[var(--ink3)]"
             />
           </div>
           <div className="border-l border-[0.5px] border-[var(--line)] pl-4">
-            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Spent</p>
+            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Spent ₽</p>
             <DualAmount
-              amount={plannedExpenses.rub}
+              amount={spent.rub}
               currency="RUB"
               exchangeRate={monthData.exchangeRate}
-              primaryClassName="text-[16px] font-semibold tracking-[-0.4px] text-[var(--red)]"
+              primaryClassName="text-[17px] font-semibold tracking-[-0.4px] text-[var(--red)]"
               secondaryClassName="mt-0.5 text-[11px] text-[var(--ink3)]"
             />
+            <p className="mt-0.5 text-[10px] text-[var(--ink3)]">
+              of <span>₽</span>
+              {formatNumber(plannedExpenses.rub)} planned
+            </p>
           </div>
           <div className="border-l border-[0.5px] border-[var(--line)] pl-4">
-            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Pockets</p>
+            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Pockets ₽</p>
             <DualAmount
               amount={pockets.rub}
               currency="RUB"
               exchangeRate={monthData.exchangeRate}
-              primaryClassName="text-[16px] font-semibold tracking-[-0.4px] text-[var(--blue)]"
+              primaryClassName="text-[17px] font-semibold tracking-[-0.4px] text-[var(--blue)]"
               secondaryClassName="mt-0.5 text-[11px] text-[var(--ink3)]"
             />
           </div>
@@ -246,7 +268,7 @@ export default function DashboardPage() {
       </section>
 
       <section>
-        <p className="mb-[10px] mt-5 px-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+        <p className="mb-[10px] mt-5 px-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--ink3)]">
           Recent spending
         </p>
         <div className="overflow-hidden rounded-2xl bg-[var(--white)]">
@@ -298,7 +320,7 @@ export default function DashboardPage() {
       </section>
 
       <section>
-        <p className="mb-[10px] mt-5 px-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+        <p className="mb-[10px] mt-5 px-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--ink3)]">
           Pockets
         </p>
         <div className="overflow-hidden rounded-2xl bg-[var(--white)]">
@@ -308,14 +330,14 @@ export default function DashboardPage() {
             monthData.pockets.map((pocket, index) => {
               const target = pocket.targetAmount ?? 0;
               const progress = target > 0 ? Math.min((pocket.savedAmount / target) * 100, 100) : 0;
-              const primary =
+              const primaryNumber = formatNumber(pocket.savedAmount);
+              const primarySymbol = pocket.currency === "USD" ? "$" : "₽";
+              const secondaryNumber = formatNumber(
                 pocket.currency === "USD"
-                  ? formatUsd(pocket.savedAmount)
-                  : formatRub(pocket.savedAmount);
-              const secondary =
-                pocket.currency === "USD"
-                  ? formatRub(toRub(pocket.savedAmount, "USD", monthData.exchangeRate))
-                  : formatUsd(toUsd(pocket.savedAmount, "RUB", monthData.exchangeRate));
+                  ? toRub(pocket.savedAmount, "USD", monthData.exchangeRate)
+                  : toUsd(pocket.savedAmount, "RUB", monthData.exchangeRate),
+              );
+              const secondarySymbol = pocket.currency === "USD" ? "₽" : "$";
 
               return (
                 <div
@@ -329,9 +351,11 @@ export default function DashboardPage() {
                     <p className="truncate text-[14px] font-medium text-[var(--ink)]">{pocket.name || "Pocket"}</p>
                     <div className="text-right">
                       <p className="text-[13px] font-semibold" style={{ color: pocket.color }}>
-                        {primary} · {Math.round(progress)}%
+                        {primaryNumber} <span className="font-light">{primarySymbol}</span> · {Math.round(progress)}%
                       </p>
-                      <p className="mt-0.5 text-[11px] text-[var(--ink3)]">{secondary}</p>
+                      <p className="mt-0.5 text-[11px] text-[var(--ink3)]">
+                        {secondaryNumber} {secondarySymbol}
+                      </p>
                     </div>
                   </div>
                   <div className="mt-2 h-[3px] overflow-hidden rounded-[2px] bg-[var(--bg)]">
