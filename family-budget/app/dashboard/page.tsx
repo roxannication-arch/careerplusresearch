@@ -1,159 +1,336 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo } from "react";
-import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-import { MetricCard } from "@/components/MetricCard";
-import { PocketCard } from "@/components/PocketCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatRub } from "@/lib/currency";
+import { formatRub, formatUsd, toRub, toUsd } from "@/lib/currency";
 import {
-  calculateCategorySummary,
   calculateIncomeTotals,
-  calculateRunningBalance,
-  calculateTotalExpenses,
+  calculatePlannedExpenseTotals,
   calculatePocketTotals,
 } from "@/lib/summary";
+import { Currency } from "@/lib/types";
 import { useBudget } from "@/components/BudgetProvider";
+import { cn } from "@/lib/utils";
 
-const chartPalette = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#0ea5e9"];
+type IconKind = "rent" | "groceries" | "transport" | "entertainment" | "phone";
 
-function tooltipFormatter(value: unknown) {
-  if (typeof value === "number") {
-    return formatRub(value);
+function detectExpenseKind(name: string): IconKind {
+  const lowered = name.toLowerCase();
+  if (/(rent|аренд|кварт|жиль)/.test(lowered)) return "rent";
+  if (/(transport|бенз|такси|авто|машин|метро)/.test(lowered)) return "transport";
+  if (/(phone|телефон|связ|интернет|mobile)/.test(lowered)) return "phone";
+  if (/(entertain|развлеч|досуг|кино|игр)/.test(lowered)) return "entertainment";
+  return "groceries";
+}
+
+function getIconColors(kind: IconKind): { background: string; color: string } {
+  if (kind === "rent") return { background: "var(--red-bg)", color: "var(--red)" };
+  if (kind === "transport") return { background: "var(--purple-bg)", color: "var(--purple)" };
+  if (kind === "phone") return { background: "var(--amber-bg)", color: "var(--amber)" };
+  if (kind === "entertainment") return { background: "var(--blue-bg)", color: "var(--blue)" };
+  return { background: "var(--green-bg)", color: "var(--green)" };
+}
+
+function IconGlyph({ kind }: { kind: IconKind }) {
+  if (kind === "rent") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 10.2 12 4l8 6.2v8.3a1 1 0 0 1-1 1h-5.1v-5.9h-3.8v5.9H5a1 1 0 0 1-1-1v-8.3Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
   }
-  if (typeof value === "string") {
-    const parsed = Number.parseFloat(value);
-    return Number.isFinite(parsed) ? formatRub(parsed) : value;
+
+  if (kind === "groceries") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="4" y="5" width="16" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M8 3.5v3M16 3.5v3M4 9h16M8 12.5h3M13 12.5h3M8 16h3M13 16h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    );
   }
-  if (Array.isArray(value) && value.length > 0) {
-    const first = value[0];
-    if (typeof first === "number") {
-      return formatRub(first);
-    }
-    if (typeof first === "string") {
-      const parsed = Number.parseFloat(first);
-      return Number.isFinite(parsed) ? formatRub(parsed) : first;
-    }
+
+  if (kind === "transport") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M6.5 15.5h11l-.8-4.2a2 2 0 0 0-2-1.6H9.3a2 2 0 0 0-2 1.6l-.8 4.2Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M6 15.5v2.2M18 15.5v2.2M8 12h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="8" cy="18" r="1" fill="currentColor" />
+        <circle cx="16" cy="18" r="1" fill="currentColor" />
+      </svg>
+    );
   }
-  return "—";
+
+  if (kind === "phone") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M5 8h14M5 12h14M5 16h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="6" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function IconWrap({ kind }: { kind: IconKind }) {
+  const colors = getIconColors(kind);
+  return (
+    <span
+      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
+      style={{ backgroundColor: colors.background, color: colors.color }}
+    >
+      <IconGlyph kind={kind} />
+    </span>
+  );
+}
+
+function DualAmount({
+  amount,
+  currency,
+  exchangeRate,
+  primaryClassName = "text-[16px] font-semibold tracking-[-0.4px] text-[var(--ink)]",
+  secondaryClassName = "mt-0.5 text-[11px] text-[var(--ink3)]",
+  negative,
+}: {
+  amount: number;
+  currency: Currency;
+  exchangeRate: number;
+  primaryClassName?: string;
+  secondaryClassName?: string;
+  negative?: boolean;
+}) {
+  const signed = negative ? -Math.abs(amount) : amount;
+  const primary = currency === "USD" ? formatUsd(signed) : formatRub(signed);
+  const secondary =
+    currency === "USD"
+      ? formatRub(toRub(signed, "USD", exchangeRate))
+      : formatUsd(toUsd(signed, "RUB", exchangeRate));
+
+  return (
+    <div className="text-right">
+      <p className={primaryClassName}>{primary}</p>
+      <p className={secondaryClassName}>{secondary}</p>
+    </div>
+  );
+}
+
+function BigValue({ value }: { value: string }) {
+  return (
+    <span className="text-[38px] font-light leading-none tracking-[-1.5px] text-[var(--ink)]">
+      {Array.from(value).map((char, index) =>
+        /\d/.test(char) ? (
+          <b key={`${char}-${index}`} className="font-bold">
+            {char}
+          </b>
+        ) : (
+          <span key={`${char}-${index}`}>{char}</span>
+        ),
+      )}
+    </span>
+  );
+}
+
+function formatDateTime(dateValue: string): string {
+  const parsed = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return `${dateValue} · 00:00`;
+  }
+
+  const datePart = parsed.toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "short",
+  });
+  const timePart = parsed.toLocaleTimeString("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${datePart} · ${timePart}`;
 }
 
 export default function DashboardPage() {
-  const { monthData, addFundsToPocket, updatePocket, deletePocket } = useBudget();
+  const { monthData } = useBudget();
   const income = useMemo(() => calculateIncomeTotals(monthData), [monthData]);
-  const expenses = useMemo(() => calculateTotalExpenses(monthData), [monthData]);
+  const plannedExpenses = useMemo(() => calculatePlannedExpenseTotals(monthData), [monthData]);
   const pockets = useMemo(() => calculatePocketTotals(monthData), [monthData]);
-  const running = useMemo(() => calculateRunningBalance(monthData), [monthData]);
-  const categorySummary = useMemo(() => calculateCategorySummary(monthData), [monthData]);
+  const available = useMemo(
+    () => ({
+      rub: income.rub - plannedExpenses.rub - pockets.rub,
+      usd: income.usd - plannedExpenses.usd - pockets.usd,
+    }),
+    [income, plannedExpenses, pockets],
+  );
 
-  const chartData = categorySummary
-    .filter((item) => item.plannedRub > 0 || item.actualRub > 0)
-    .map((item) => ({
-      name: item.categoryName,
-      plannedRub: Number(item.plannedRub.toFixed(2)),
-      actualRub: Number(item.actualRub.toFixed(2)),
-    }));
+  const categoryNameById = useMemo(
+    () =>
+      monthData.expenses.reduce<Record<string, string>>((accumulator, expense) => {
+        accumulator[expense.id] = expense.name.trim() || "Без категории";
+        return accumulator;
+      }, {}),
+    [monthData.expenses],
+  );
+
+  const recentTransactions = useMemo(() => {
+    return [...monthData.transactions]
+      .sort((left, right) => {
+        const leftTs = new Date(`${left.date}T00:00:00`).getTime();
+        const rightTs = new Date(`${right.date}T00:00:00`).getTime();
+        return rightTs - leftTs;
+      })
+      .slice(0, 3);
+  }, [monthData.transactions]);
 
   return (
-    <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Общий доход" rubValue={income.rub} usdValue={income.usd} tone="positive" />
-        <MetricCard title="Общие расходы" rubValue={expenses.rub} usdValue={expenses.usd} tone="negative" />
-        <MetricCard title="В покетах" rubValue={pockets.rub} usdValue={pockets.usd} tone="pocket" />
-        <MetricCard
-          title="Свободный остаток"
-          rubValue={running.rub}
-          usdValue={running.usd}
-          tone={running.rub >= 0 ? "positive" : "negative"}
-        />
-      </div>
+    <div className="-mx-4 -mt-6 bg-[var(--bg)] px-4 pt-6 pb-4">
+      <section className="mb-3 rounded-[20px] bg-[var(--white)] px-5 py-[22px]">
+        <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Available this month</p>
+        <BigValue value={formatRub(available.rub)} />
+        <p className="mt-[5px] text-[13px] text-[var(--ink3)]">{formatUsd(available.usd)}</p>
+        <div className="my-[18px] h-[0.5px] bg-[var(--line)]" />
+        <div className="grid grid-cols-3 gap-0">
+          <div>
+            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Income</p>
+            <DualAmount
+              amount={income.rub}
+              currency="RUB"
+              exchangeRate={monthData.exchangeRate}
+              primaryClassName="text-[16px] font-semibold tracking-[-0.4px] text-[var(--green)]"
+              secondaryClassName="mt-0.5 text-[11px] text-[var(--ink3)]"
+            />
+          </div>
+          <div className="border-l border-[0.5px] border-[var(--line)] pl-4">
+            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Spent</p>
+            <DualAmount
+              amount={plannedExpenses.rub}
+              currency="RUB"
+              exchangeRate={monthData.exchangeRate}
+              primaryClassName="text-[16px] font-semibold tracking-[-0.4px] text-[var(--red)]"
+              secondaryClassName="mt-0.5 text-[11px] text-[var(--ink3)]"
+            />
+          </div>
+          <div className="border-l border-[0.5px] border-[var(--line)] pl-4">
+            <p className="mb-1 text-[11px] font-medium text-[var(--ink3)]">Pockets</p>
+            <DualAmount
+              amount={pockets.rub}
+              currency="RUB"
+              exchangeRate={monthData.exchangeRate}
+              primaryClassName="text-[16px] font-semibold tracking-[-0.4px] text-[var(--blue)]"
+              secondaryClassName="mt-0.5 text-[11px] text-[var(--ink3)]"
+            />
+          </div>
+        </div>
+      </section>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="bg-white">
-          <CardHeader>
-            <CardTitle>Структура бюджета по категориям</CardTitle>
-          </CardHeader>
-          <CardContent className="h-72">
-            {chartData.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Пока нет категорий с суммами. Заполните раздел &quot;Бюджет&quot;.
-              </p>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    dataKey="plannedRub"
-                    nameKey="name"
-                    innerRadius={54}
-                    outerRadius={96}
-                    paddingAngle={3}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={entry.name} fill={chartPalette[index % chartPalette.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={tooltipFormatter}
-                    contentStyle={{ borderRadius: "12px", borderColor: "#e2e8f0" }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white">
-          <CardHeader>
-            <CardTitle>План и факт по категориям (месяц)</CardTitle>
-          </CardHeader>
-          <CardContent className="h-72">
-            {chartData.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Добавьте категории и транзакции для графика.</p>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 20 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-20} textAnchor="end" height={56} />
-                  <YAxis tickFormatter={(value) => `${Math.round(value / 1000)}k`} />
-                  <Tooltip
-                    formatter={tooltipFormatter}
-                    contentStyle={{ borderRadius: "12px", borderColor: "#e2e8f0" }}
-                  />
-                  <Bar dataKey="plannedRub" name="План" fill="#6366f1" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="actualRub" name="Факт" fill="#ef4444" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="bg-white">
-        <CardHeader>
-          <CardTitle>Покеты</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {monthData.pockets.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Покетов пока нет. Создайте их на вкладке &quot;Покеты&quot;.
-            </p>
+      <section>
+        <p className="mb-[10px] mt-5 px-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+          Recent spending
+        </p>
+        <div className="overflow-hidden rounded-2xl bg-[var(--white)]">
+          {recentTransactions.length === 0 ? (
+            <div className="px-4 py-4 text-[13px] text-[var(--ink3)]">No transactions yet.</div>
           ) : (
-            <div className="grid gap-3 lg:grid-cols-2">
-              {monthData.pockets.map((pocket) => (
-                <PocketCard
-                  key={pocket.id}
-                  pocket={pocket}
-                  exchangeRate={monthData.exchangeRate}
-                  onUpdate={(patch) => updatePocket(pocket.id, patch)}
-                  onDelete={() => deletePocket(pocket.id)}
-                  onAddFunds={(amount, currency) => addFundsToPocket(pocket.id, amount, currency)}
-                />
-              ))}
-            </div>
+            recentTransactions.map((transaction, index) => {
+              const categoryName =
+                categoryNameById[transaction.categoryId] || transaction.note.trim() || "Без категории";
+              const kind = detectExpenseKind(categoryName);
+              return (
+                <div
+                  key={transaction.id}
+                  className={cn(
+                    "flex min-h-[52px] items-center gap-3 px-4 py-[13px]",
+                    index > 0 && "border-t border-[0.5px] border-[var(--line)]",
+                  )}
+                >
+                  <IconWrap kind={kind} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-medium tracking-[-0.2px] text-[var(--ink)]">
+                      {categoryName}
+                    </p>
+                    <p className="mt-[2px] truncate text-[11px] text-[var(--ink3)]">
+                      {transaction.note.trim()
+                        ? `${formatDateTime(transaction.date)} · ${transaction.note.trim()}`
+                        : formatDateTime(transaction.date)}
+                    </p>
+                  </div>
+                  <DualAmount
+                    amount={transaction.amount}
+                    currency={transaction.currency}
+                    exchangeRate={monthData.exchangeRate}
+                    primaryClassName="text-[14px] font-semibold tracking-[-0.3px] text-[var(--red)]"
+                    secondaryClassName="mt-0.5 text-[11px] text-[var(--ink3)]"
+                    negative
+                  />
+                </div>
+              );
+            })
           )}
-        </CardContent>
-      </Card>
+          <Link
+            href="/transactions"
+            className="block w-full border-t border-[0.5px] border-[var(--line)] px-4 py-3 text-[13px] font-medium text-[var(--blue)]"
+          >
+            View all →
+          </Link>
+        </div>
+      </section>
+
+      <section>
+        <p className="mb-[10px] mt-5 px-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+          Pockets
+        </p>
+        <div className="overflow-hidden rounded-2xl bg-[var(--white)]">
+          {monthData.pockets.length === 0 ? (
+            <div className="px-4 py-4 text-[13px] text-[var(--ink3)]">No pockets yet.</div>
+          ) : (
+            monthData.pockets.map((pocket, index) => {
+              const target = pocket.targetAmount ?? 0;
+              const progress = target > 0 ? Math.min((pocket.savedAmount / target) * 100, 100) : 0;
+              const primary =
+                pocket.currency === "USD"
+                  ? formatUsd(pocket.savedAmount)
+                  : formatRub(pocket.savedAmount);
+              const secondary =
+                pocket.currency === "USD"
+                  ? formatRub(toRub(pocket.savedAmount, "USD", monthData.exchangeRate))
+                  : formatUsd(toUsd(pocket.savedAmount, "RUB", monthData.exchangeRate));
+
+              return (
+                <div
+                  key={pocket.id}
+                  className={cn(
+                    "px-4 py-4",
+                    index > 0 && "border-t border-[0.5px] border-[var(--line)]",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="truncate text-[14px] font-medium text-[var(--ink)]">{pocket.name || "Pocket"}</p>
+                    <div className="text-right">
+                      <p className="text-[13px] font-semibold" style={{ color: pocket.color }}>
+                        {primary} · {Math.round(progress)}%
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-[var(--ink3)]">{secondary}</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 h-[3px] overflow-hidden rounded-[2px] bg-[var(--bg)]">
+                    <div
+                      className="h-full rounded-[2px]"
+                      style={{ width: `${progress}%`, backgroundColor: pocket.color }}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
+          <Link
+            href="/pockets"
+            className="block w-full border-t border-[0.5px] border-[var(--line)] px-4 py-3 text-[13px] font-medium text-[var(--blue)]"
+          >
+            View all →
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }
