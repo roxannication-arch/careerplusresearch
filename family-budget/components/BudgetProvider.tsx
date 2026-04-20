@@ -14,7 +14,10 @@ import { convertCurrency } from "@/lib/currency";
 import { createId } from "@/lib/id";
 import {
   buildMonthOptions,
+  copyMonthPlan as copyMonthPlanInState,
   getMonthData,
+  getPreviousMonthKey,
+  hasMonthPlanData,
   loadStorageState,
   saveStorageState,
   setSelectedMonth as selectMonthInState,
@@ -37,6 +40,8 @@ interface BudgetContextValue {
   monthData: ReturnType<typeof getMonthData>;
   setSelectedMonth: (monthKey: string) => void;
   updateExchangeRate: (exchangeRate: number) => void;
+  convertIncomeCurrency: (id: string) => void;
+  convertExpenseCurrency: (id: string) => void;
   updateIncome: (id: string, patch: Partial<IncomeItem>) => void;
   addIncome: (owner: IncomeOwner) => void;
   deleteIncome: (id: string) => void;
@@ -50,6 +55,9 @@ interface BudgetContextValue {
   addFundsToPocket: (id: string, amount: number, currency: Currency) => void;
   addTransaction: (input: Omit<Transaction, "id">) => void;
   deleteTransaction: (id: string) => void;
+  previousMonth: string | null;
+  hasPlanData: boolean;
+  copyPlanFromMonth: (fromMonth: string, options?: { force?: boolean }) => boolean;
 }
 
 const BudgetContext = createContext<BudgetContextValue | null>(null);
@@ -88,6 +96,8 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
   const selectedMonth = state.selectedMonth;
   const monthData = useMemo(() => getMonthData(state, selectedMonth), [state, selectedMonth]);
   const monthOptions = useMemo(() => buildMonthOptions(selectedMonth, 24), [selectedMonth]);
+  const previousMonth = useMemo(() => getPreviousMonthKey(selectedMonth), [selectedMonth]);
+  const hasPlanData = useMemo(() => hasMonthPlanData(monthData), [monthData]);
 
   const updateCurrentMonth = useCallback(
     (updater: (month: typeof monthData) => typeof monthData) => {
@@ -105,6 +115,62 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       updateCurrentMonth((month) => ({
         ...month,
         exchangeRate: sanitizePositiveNumber(exchangeRate, month.exchangeRate),
+      }));
+    },
+    [updateCurrentMonth],
+  );
+
+  const convertIncomeCurrency = useCallback(
+    (id: string) => {
+      updateCurrentMonth((month) => ({
+        ...month,
+        incomes: month.incomes.map((income) => {
+          if (income.id !== id || typeof income.amount !== "number" || !Number.isFinite(income.amount)) {
+            return income;
+          }
+
+          if (income.currency === "RUB") {
+            return {
+              ...income,
+              amount: convertCurrency(income.amount, "RUB", "USD", month.exchangeRate),
+              currency: "USD",
+            };
+          }
+
+          return {
+            ...income,
+            amount: convertCurrency(income.amount, "USD", "RUB", month.exchangeRate),
+            currency: "RUB",
+          };
+        }),
+      }));
+    },
+    [updateCurrentMonth],
+  );
+
+  const convertExpenseCurrency = useCallback(
+    (id: string) => {
+      updateCurrentMonth((month) => ({
+        ...month,
+        expenses: month.expenses.map((expense) => {
+          if (expense.id !== id || typeof expense.amount !== "number" || !Number.isFinite(expense.amount)) {
+            return expense;
+          }
+
+          if (expense.currency === "RUB") {
+            return {
+              ...expense,
+              amount: convertCurrency(expense.amount, "RUB", "USD", month.exchangeRate),
+              currency: "USD",
+            };
+          }
+
+          return {
+            ...expense,
+            amount: convertCurrency(expense.amount, "USD", "RUB", month.exchangeRate),
+            currency: "RUB",
+          };
+        }),
       }));
     },
     [updateCurrentMonth],
@@ -347,6 +413,32 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
     [updateCurrentMonth],
   );
 
+  const copyPlanFromMonth = useCallback(
+    (fromMonth: string, options?: { force?: boolean }) => {
+      if (!fromMonth) {
+        return false;
+      }
+
+      let copied = false;
+      setState((previous) => {
+        const fromData = previous.months[fromMonth];
+        if (!fromData) {
+          return previous;
+        }
+
+        const result = copyMonthPlanInState(previous, fromMonth, previous.selectedMonth, options);
+        if (!result.didCopy) {
+          return previous;
+        }
+        copied = true;
+        return result.state;
+      });
+
+      return copied;
+    },
+    [],
+  );
+
   const value = useMemo<BudgetContextValue>(
     () => ({
       state,
@@ -355,6 +447,8 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       monthData,
       setSelectedMonth,
       updateExchangeRate,
+      convertIncomeCurrency,
+      convertExpenseCurrency,
       updateIncome,
       addIncome,
       deleteIncome,
@@ -368,6 +462,9 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       addFundsToPocket,
       addTransaction,
       deleteTransaction,
+      previousMonth,
+      hasPlanData,
+      copyPlanFromMonth,
     }),
     [
       state,
@@ -376,6 +473,8 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       monthData,
       setSelectedMonth,
       updateExchangeRate,
+      convertIncomeCurrency,
+      convertExpenseCurrency,
       updateIncome,
       addIncome,
       deleteIncome,
@@ -389,6 +488,9 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       addFundsToPocket,
       addTransaction,
       deleteTransaction,
+      previousMonth,
+      hasPlanData,
+      copyPlanFromMonth,
     ],
   );
 

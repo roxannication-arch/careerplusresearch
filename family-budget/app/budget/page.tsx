@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { useBudget } from "@/components/BudgetProvider";
 import { convertCurrency, formatRub, formatUsd, toRub, toUsd } from "@/lib/currency";
+import { getMonthLabel } from "@/lib/storage";
 import { Currency } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -275,10 +276,20 @@ function SectionTotal({
 }
 
 export default function BudgetPage() {
-  const { monthData, updateIncome, addIncome, updateExpense, addExpense } = useBudget();
+  const {
+    previousMonth,
+    hasPlanData,
+    monthData,
+    copyPlanFromMonth,
+    updateIncome,
+    addIncome,
+    updateExpense,
+    addExpense,
+  } = useBudget();
 
   const myIncomes = monthData.incomes.filter((income) => income.owner === "me");
   const milenaIncomes = monthData.incomes.filter((income) => income.owner === "milena");
+  const previousMonthLabel = previousMonth ? getMonthLabel(previousMonth) : "";
 
   const roksanaTotals = useMemo(
     () =>
@@ -324,6 +335,47 @@ export default function BudgetPage() {
 
   return (
     <div className="-mx-4 -mt-6 bg-[var(--bg)] px-4 pt-6 pb-4">
+      {previousMonth && hasPlanData ? (
+        <div className="mb-2 flex justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              const approved = window.confirm(
+                `Copy plan from ${previousMonthLabel}? Current month plan will be overwritten.`,
+              );
+              if (approved) {
+                copyPlanFromMonth(previousMonth, { force: true });
+              }
+            }}
+            className="text-[13px] text-[var(--blue)]"
+          >
+            ↓ Copy plan from last month
+          </button>
+        </div>
+      ) : previousMonth && !hasPlanData ? (
+        <div className="mb-3 rounded-2xl bg-[var(--white)] p-4">
+          <p className="text-[14px] font-medium text-[var(--ink)]">Copy plan from {previousMonthLabel}?</p>
+          <p className="mt-1 text-[12px] text-[var(--ink3)]">
+            Income and planned expenses will be copied. Transactions won&apos;t.
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => copyPlanFromMonth(previousMonth)}
+              className="rounded-[10px] bg-[var(--blue)] px-5 py-2.5 text-[13px] font-semibold text-white"
+            >
+              Copy
+            </button>
+            <button
+              type="button"
+              className="rounded-[10px] border border-[0.5px] border-[var(--line2)] px-5 py-2.5 text-[13px] font-semibold text-[var(--ink2)]"
+            >
+              Start fresh
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="rounded-xl bg-[var(--blue-bg)] px-[14px] py-3 text-[12px] font-medium text-[var(--blue)]">
         All amounts shown at $1 = ₽{monthData.exchangeRate}
       </div>

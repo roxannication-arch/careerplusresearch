@@ -349,6 +349,74 @@ export function getMonthData(state: BudgetStorageState, monthKey: string): Month
   return state.months[monthKey] ?? createDefaultMonthData();
 }
 
+export function hasMonthPlanData(monthData: MonthBudgetData): boolean {
+  const hasIncomeData = monthData.incomes.some(
+    (income) =>
+      (typeof income.amount === "number" && Number.isFinite(income.amount) && income.amount !== 0) ||
+      income.name.trim().length > 0,
+  );
+  const hasExpenseData = monthData.expenses.some(
+    (expense) =>
+      (typeof expense.amount === "number" && Number.isFinite(expense.amount) && expense.amount !== 0) ||
+      expense.name.trim().length > 0,
+  );
+
+  return hasIncomeData || hasExpenseData;
+}
+
+export function getPreviousMonthKey(monthKey: string): string | null {
+  const normalizedMonthKey = normalizeMonthKey(monthKey);
+  if (!normalizedMonthKey) {
+    return null;
+  }
+
+  const [yearString, monthString] = normalizedMonthKey.split("-");
+  const year = Number.parseInt(yearString, 10);
+  const month = Number.parseInt(monthString, 10);
+  const previous = new Date(year, month - 2, 1);
+
+  return `${previous.getFullYear()}-${String(previous.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export function copyMonthPlan(
+  state: BudgetStorageState,
+  fromMonth: string,
+  toMonth: string,
+  options?: { force?: boolean },
+): { state: BudgetStorageState; didCopy: boolean; requiresConfirmation: boolean } {
+  const normalizedFromMonth = normalizeMonthKey(fromMonth);
+  const normalizedToMonth = normalizeMonthKey(toMonth);
+  if (!normalizedFromMonth || !normalizedToMonth || normalizedFromMonth === normalizedToMonth) {
+    return { state, didCopy: false, requiresConfirmation: false };
+  }
+
+  const fromData = getMonthData(state, normalizedFromMonth);
+  const toData = getMonthData(state, normalizedToMonth);
+  if (hasMonthPlanData(toData) && !options?.force) {
+    return { state, didCopy: false, requiresConfirmation: true };
+  }
+
+  const copiedIncomes = fromData.incomes.map((income) => ({ ...income, id: createId() }));
+  const copiedExpenses = fromData.expenses.map((expense) => ({ ...expense, id: createId() }));
+  const nextMonthData = normalizeMonthData({
+    ...toData,
+    incomes: copiedIncomes,
+    expenses: copiedExpenses,
+  });
+
+  return {
+    state: {
+      ...state,
+      months: {
+        ...state.months,
+        [normalizedToMonth]: nextMonthData,
+      },
+    },
+    didCopy: true,
+    requiresConfirmation: false,
+  };
+}
+
 export function upsertMonthData(
   state: BudgetStorageState,
   monthKey: string,
