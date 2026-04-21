@@ -4,32 +4,22 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import { useBudget } from "@/components/BudgetProvider";
-import { toRub, toUsd } from "@/lib/currency";
+import { fmt, toRub, toUsd } from "@/lib/currency";
 import {
-  calculateIncomeTotals,
   calculatePlannedExpenseTotals,
   calculateTransactionTotals,
 } from "@/lib/summary";
-import { Currency } from "@/lib/types";
+import { IncomeOwner } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type IconKind = "rent" | "groceries" | "transport" | "entertainment" | "phone";
 
-const compactNumber = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 0,
-});
-
-function formatCompactCurrency(value: number, currency: Currency): string {
-  const symbol = currency === "USD" ? "$" : "₽";
-  return `${symbol}${compactNumber.format(Math.round(Math.abs(value)))}`;
-}
-
 function formatSignedRubDiff(value: number): string {
   if (value > 0) {
-    return `+${formatCompactCurrency(value, "RUB")}`;
+    return `+${fmt(value, "RUB")}`;
   }
   if (value < 0) {
-    return `−${formatCompactCurrency(Math.abs(value), "RUB")}`;
+    return `−${fmt(Math.abs(value), "RUB")}`;
   }
   return "On track";
 }
@@ -155,7 +145,19 @@ function AmountPair({
 
 export default function PlanFactPage() {
   const { monthData } = useBudget();
-  const plannedIncomeTotals = useMemo(() => calculateIncomeTotals(monthData), [monthData]);
+  const plannedIncomeTotals = useMemo(
+    () =>
+      monthData.incomes.reduce(
+        (accumulator, income) => {
+          const amount = typeof income.amount === "number" && Number.isFinite(income.amount) ? income.amount : 0;
+          accumulator.rub += toRub(amount, income.currency, monthData.exchangeRate);
+          accumulator.usd += toUsd(amount, income.currency, monthData.exchangeRate);
+          return accumulator;
+        },
+        { rub: 0, usd: 0 },
+      ),
+    [monthData.exchangeRate, monthData.incomes],
+  );
   const actualIncomeTotals = useMemo(
     () =>
       monthData.transactions
@@ -249,42 +251,52 @@ export default function PlanFactPage() {
     [actualByCategory, monthData.exchangeRate, monthData.expenses],
   );
 
-  const incomeActualBySource = useMemo(() => {
-    const grouped = new Map<string, { rub: number; usd: number }>();
-    for (const transaction of monthData.transactions) {
-      if (transaction.type !== "income") {
-        continue;
-      }
-      const source = transaction.categoryId.trim() || "Other";
-      const existing = grouped.get(source) ?? { rub: 0, usd: 0 };
-      existing.rub += toRub(transaction.amount, transaction.currency, monthData.exchangeRate);
-      existing.usd += toUsd(transaction.amount, transaction.currency, monthData.exchangeRate);
-      grouped.set(source, existing);
-    }
-    return grouped;
-  }, [monthData.exchangeRate, monthData.transactions]);
-
   const incomeCards = useMemo(() => {
-    const keys = Array.from(
-      new Set([
-        ...monthData.incomes.map((income) => income.name.trim()).filter(Boolean),
-        ...incomeActualBySource.keys(),
-      ]),
-    );
+    const ownerNameMap: Record<IncomeOwner, string> = {
+      me: "Roksana",
+      milena: "Milena",
+    };
+    const ownerSourceAliases: Record<IncomeOwner, string[]> = {
+      me: ["roksana", "roxana", "роксана", "рокс"],
+      milena: ["milena", "милена", "милен"],
+    };
+    return (["me", "milena"] as const).map((owner) => {
+      const ownerRows = monthData.incomes.filter((income) => income.owner === owner);
+      const ownerName = ownerNameMap[owner];
+      const plannedRub = ownerRows.reduce(
+        (sum, row) =>
+          sum +
+          toRub(
+            typeof row.amount === "number" && Number.isFinite(row.amount) ? row.amount : 0,
+            row.currency,
+            monthData.exchangeRate,
+          ),
+        0,
+      );
+      const plannedUsd = ownerRows.reduce(
+        (sum, row) =>
+          sum +
+          toUsd(
+            typeof row.amount === "number" && Number.isFinite(row.amount) ? row.amount : 0,
+            row.currency,
+            monthData.exchangeRate,
+          ),
+        0,
+      );
+      const actual = monthData.transactions
+        .filter((transaction) => transaction.type === "income")
+        .filter((transaction) => {
+          const source = transaction.categoryId.trim().toLowerCase();
+          return ownerSourceAliases[owner].some((alias) => source.includes(alias));
+        })
+        .reduce(
+          (accumulator, transaction) => ({
+            rub: accumulator.rub + toRub(transaction.amount, transaction.currency, monthData.exchangeRate),
+            usd: accumulator.usd + toUsd(transaction.amount, transaction.currency, monthData.exchangeRate),
+          }),
+          { rub: 0, usd: 0 },
+        );
 
-    return keys.map((sourceLabel) => {
-      const matchingRows = monthData.incomes.filter((income) => income.name.trim() === sourceLabel);
-      const plannedRub = matchingRows.reduce(
-        (sum, row) =>
-          sum + toRub(typeof row.amount === "number" && Number.isFinite(row.amount) ? row.amount : 0, row.currency, monthData.exchangeRate),
-        0,
-      );
-      const plannedUsd = matchingRows.reduce(
-        (sum, row) =>
-          sum + toUsd(typeof row.amount === "number" && Number.isFinite(row.amount) ? row.amount : 0, row.currency, monthData.exchangeRate),
-        0,
-      );
-      const actual = incomeActualBySource.get(sourceLabel) ?? { rub: 0, usd: 0 };
       const diff = actual.rub - plannedRub;
       const progress = plannedRub > 0 ? Math.min((actual.rub / plannedRub) * 100, 100) : 0;
       const badgeClass =
@@ -295,14 +307,14 @@ export default function PlanFactPage() {
             : "bg-[var(--bg)] text-[var(--ink3)]";
       const badgeText =
         diff > 0
-          ? `+${formatCompactCurrency(diff, "RUB")} ahead`
+          ? `+${fmt(diff, "RUB")} ahead`
           : diff < 0
-            ? `−${formatCompactCurrency(Math.abs(diff), "RUB")} behind`
+            ? `−${fmt(Math.abs(diff), "RUB")} behind`
             : "On track";
 
       return {
-        id: sourceLabel,
-        label: sourceLabel,
+        id: owner,
+        label: ownerName,
         plannedRub,
         plannedUsd,
         actualRub: actual.rub,
@@ -312,7 +324,7 @@ export default function PlanFactPage() {
         progress,
       };
     });
-  }, [incomeActualBySource, monthData.exchangeRate, monthData.incomes]);
+  }, [monthData.exchangeRate, monthData.incomes, monthData.transactions]);
 
   const hasExpenseTransactions = monthData.transactions.some((transaction) => transaction.type === "expense");
 
@@ -323,11 +335,11 @@ export default function PlanFactPage() {
           <div>
             <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Earned so far</p>
             <BoldDigits
-              value={formatCompactCurrency(actualIncomeTotals.rub, "RUB")}
+              value={fmt(actualIncomeTotals.rub, "RUB")}
               className="text-[32px] font-light leading-none tracking-[-1px] text-[var(--ink)]"
             />
             <p className="mt-1 text-[12px] text-[var(--ink3)]">
-              {formatCompactCurrency(actualIncomeTotals.usd, "USD")}
+              {fmt(actualIncomeTotals.usd, "USD")}
             </p>
           </div>
           <div className="text-right">
@@ -336,7 +348,7 @@ export default function PlanFactPage() {
               {Math.max(0, Math.round(incomeAchieved))}%
             </p>
             <p className="mt-1 text-[12px] text-[var(--ink3)]">
-              of {formatCompactCurrency(plannedIncomeTotals.rub, "RUB")} plan
+              of {fmt(plannedIncomeTotals.rub, "RUB")} plan
             </p>
           </div>
         </div>
@@ -368,8 +380,8 @@ export default function PlanFactPage() {
                   Planned
                 </p>
                 <AmountPair
-                  primary={formatCompactCurrency(card.plannedRub, "RUB")}
-                  secondary={formatCompactCurrency(card.plannedUsd, "USD")}
+                  primary={fmt(card.plannedRub, "RUB")}
+                  secondary={fmt(card.plannedUsd, "USD")}
                   primaryClassName="text-[16px] font-bold tracking-[-0.4px] text-[var(--ink)]"
                 />
               </div>
@@ -378,8 +390,8 @@ export default function PlanFactPage() {
                   Actual
                 </p>
                 <AmountPair
-                  primary={formatCompactCurrency(card.actualRub, "RUB")}
-                  secondary={formatCompactCurrency(card.actualUsd, "USD")}
+                  primary={fmt(card.actualRub, "RUB")}
+                  secondary={fmt(card.actualUsd, "USD")}
                   primaryClassName="text-[16px] font-bold tracking-[-0.4px] text-[var(--ink)]"
                 />
               </div>
@@ -400,14 +412,14 @@ export default function PlanFactPage() {
           <div>
             <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Spent so far</p>
             <BoldDigits
-              value={formatCompactCurrency(actualTotals.rub, "RUB")}
+              value={fmt(actualTotals.rub, "RUB")}
               className="text-[32px] font-light leading-none tracking-[-1px] text-[var(--ink)]"
             />
             <p className="mt-1 text-[12px] text-[var(--ink3)]">
-              {formatCompactCurrency(actualTotals.usd, "USD")}
+              {fmt(actualTotals.usd, "USD")}
             </p>
             <p className="mt-2 text-[12px] text-[var(--ink3)]">
-              {formatCompactCurrency(Math.abs(remainingRub), "RUB")} remaining of plan
+              {fmt(Math.abs(remainingRub), "RUB")} remaining of plan
             </p>
           </div>
 
@@ -417,7 +429,7 @@ export default function PlanFactPage() {
               {Math.max(0, Math.round(budgetUsed))}%
             </p>
             <p className="mt-1 text-[12px] text-[var(--ink3)]">
-              of {formatCompactCurrency(plannedTotals.rub, "RUB")} plan
+              of {fmt(plannedTotals.rub, "RUB")} plan
             </p>
           </div>
         </div>
@@ -447,8 +459,8 @@ export default function PlanFactPage() {
                     Planned
                   </p>
                   <AmountPair
-                    primary={formatCompactCurrency(card.plannedRub, "RUB")}
-                    secondary={formatCompactCurrency(card.plannedUsd, "USD")}
+                    primary={fmt(card.plannedRub, "RUB")}
+                    secondary={fmt(card.plannedUsd, "USD")}
                     primaryClassName="text-[16px] font-bold tracking-[-0.4px] text-[var(--ink)]"
                   />
                 </div>
@@ -457,8 +469,8 @@ export default function PlanFactPage() {
                     Actual
                   </p>
                   <AmountPair
-                    primary={formatCompactCurrency(card.actualRub, "RUB")}
-                    secondary={formatCompactCurrency(card.actualUsd, "USD")}
+                    primary={fmt(card.actualRub, "RUB")}
+                    secondary={fmt(card.actualUsd, "USD")}
                     primaryClassName={card.actualPrimaryClassName}
                   />
                 </div>

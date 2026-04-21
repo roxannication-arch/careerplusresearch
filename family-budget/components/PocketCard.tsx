@@ -109,7 +109,7 @@ export function PocketCard({ pocket, exchangeRate, onUpdate, onDelete, onAddFund
           style={{ ["--progress-color" as string]: pocket.color }}
         >
           <p className="text-xs text-muted-foreground">Прогресс</p>
-          <p className="text-xs text-muted-foreground">{progressValue.toFixed(0)}%</p>
+          <p className="text-xs text-muted-foreground">{Math.round(progressValue)}%</p>
         </Progress>
 
         <div className="grid gap-2 sm:grid-cols-[1fr_140px_auto]">

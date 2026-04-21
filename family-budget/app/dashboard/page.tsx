@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
-import { toRub, toUsd } from "@/lib/currency";
+import { fmt, toRub, toUsd } from "@/lib/currency";
 import {
-  calculateIncomeTotals,
-  calculateIncomeTransactionTotals,
-  calculatePlannedExpenseTotals,
-  calculatePocketTotals,
-} from "@/lib/summary";
+  getActualIncome,
+  getActualSpent,
+  getMonthData,
+  getPocketContributions,
+  getPlannedExpenses,
+  getPlannedIncome,
+} from "@/lib/storage";
 import { Currency } from "@/lib/types";
 import { useBudget } from "@/components/BudgetProvider";
 import { cn } from "@/lib/utils";
@@ -174,57 +176,42 @@ function formatDateTime(dateValue: string): string {
 }
 
 export default function DashboardPage() {
-  const { monthData } = useBudget();
-  const plannedIncome = useMemo(() => calculateIncomeTotals(monthData), [monthData]);
-  const income = useMemo(() => calculateIncomeTransactionTotals(monthData), [monthData]);
-  const spent = useMemo(
-    () =>
-      monthData.transactions
-        .filter((transaction) => transaction.type !== "income")
-        .reduce(
-        (accumulator, transaction) => ({
-          rub: accumulator.rub + toRub(transaction.amount, transaction.currency, monthData.exchangeRate),
-          usd: accumulator.usd + toUsd(transaction.amount, transaction.currency, monthData.exchangeRate),
-        }),
-        { rub: 0, usd: 0 },
-      ),
-    [monthData.exchangeRate, monthData.transactions],
-  );
-  const plannedExpenses = useMemo(() => calculatePlannedExpenseTotals(monthData), [monthData]);
-  const pockets = useMemo(() => calculatePocketTotals(monthData), [monthData]);
-  const available = useMemo(
-    () => ({
-      rub: income.rub - spent.rub - pockets.rub,
-      usd: income.usd - spent.usd - pockets.usd,
-    }),
-    [income, spent, pockets],
-  );
-  const totalIncome = income.rub;
-  const totalIncomePlanned = plannedIncome.rub;
-  const actualSpent = spent.rub;
-  const totalPlanned = plannedExpenses.rub;
-  const pocketTotal = pockets.rub;
+  const { state, selectedMonth, monthData } = useBudget();
   const rate = monthData.exchangeRate;
+  const currentMonthData = useMemo(() => getMonthData(state, selectedMonth), [state, selectedMonth]);
+
+  const actualIncome = useMemo(() => getActualIncome(state, selectedMonth, rate), [state, selectedMonth, rate]);
+  const plannedIncome = useMemo(() => getPlannedIncome(state, selectedMonth, rate), [state, selectedMonth, rate]);
+  const actualSpent = useMemo(() => getActualSpent(state, selectedMonth, rate), [state, selectedMonth, rate]);
+  const plannedSpent = useMemo(
+    () => getPlannedExpenses(state, selectedMonth, rate),
+    [state, selectedMonth, rate],
+  );
+  const pocketTotal = useMemo(
+    () => getPocketContributions(state, selectedMonth, rate),
+    [state, selectedMonth, rate],
+  );
+  const available = useMemo(() => actualIncome - actualSpent - pocketTotal, [actualIncome, actualSpent, pocketTotal]);
+  const availableUsd = useMemo(() => toUsd(available, "RUB", rate), [available, rate]);
 
   const categoryNameById = useMemo(
     () =>
-      monthData.expenses.reduce<Record<string, string>>((accumulator, expense) => {
+      currentMonthData.expenses.reduce<Record<string, string>>((accumulator, expense) => {
         accumulator[expense.id] = expense.name.trim() || "Без категории";
         return accumulator;
       }, {}),
-    [monthData.expenses],
+    [currentMonthData.expenses],
   );
 
   const recentTransactions = useMemo(() => {
-    return [...monthData.transactions]
-      .filter((transaction) => transaction.type !== "income")
+    return [...currentMonthData.transactions]
       .sort((left, right) => {
         const leftTs = new Date(`${left.date}T00:00:00`).getTime();
         const rightTs = new Date(`${right.date}T00:00:00`).getTime();
         return rightTs - leftTs;
       })
       .slice(0, 3);
-  }, [monthData.transactions]);
+  }, [currentMonthData.transactions]);
 
   return (
     <div className="-mx-4 -mt-6 bg-[var(--bg)] px-4 pt-6 pb-4">
@@ -232,17 +219,15 @@ export default function DashboardPage() {
         <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Available</p>
         <div className="flex items-end gap-1.5">
           <BigValue
-            value={formatNumber(available.rub)}
+            value={formatNumber(available)}
             className={cn(
               "text-[40px] font-light leading-none tracking-[-1.5px]",
-              available.rub < 0 ? "text-[var(--red)]" : "text-[var(--ink)]",
+              available < 0 ? "text-[var(--red)]" : "text-[var(--ink)]",
             )}
           />
           <span className="mb-1 ml-1 text-[20px] font-light text-[var(--ink3)]">₽</span>
         </div>
-        <p className="mt-[5px] text-[13px] text-[var(--ink3)]">
-          {formatNumber(available.usd)} $
-        </p>
+        <p className="mt-[5px] text-[13px] text-[var(--ink3)]">{fmt(availableUsd, "USD")}</p>
         <div
           style={{
             display: "flex",
@@ -257,14 +242,14 @@ export default function DashboardPage() {
               Income
             </div>
             <div style={{ fontSize: "17px", fontWeight: 600, letterSpacing: "-0.4px", color: "#1A9A44" }}>
-              {totalIncome.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              {fmt(actualIncome, "RUB").replace(" ₽", "")}
               <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "2px" }}>₽</span>
             </div>
             <div style={{ fontSize: "11px", color: "#AEAEB2", marginTop: "2px" }}>
-              {(totalIncome / rate).toLocaleString("en-US", { maximumFractionDigits: 0 })} $
+              {fmt(toUsd(actualIncome, "RUB", rate), "USD")}
             </div>
             <div style={{ fontSize: "10px", color: "#AEAEB2", marginTop: "3px", whiteSpace: "nowrap" }}>
-              of {totalIncomePlanned.toLocaleString("en-US", { maximumFractionDigits: 0 })} ₽ planned
+              of {fmt(plannedIncome, "RUB")} planned
             </div>
           </div>
 
@@ -273,14 +258,14 @@ export default function DashboardPage() {
               Spent
             </div>
             <div style={{ fontSize: "17px", fontWeight: 600, letterSpacing: "-0.4px", color: "#C7372F" }}>
-              {actualSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              {fmt(actualSpent, "RUB").replace(" ₽", "")}
               <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "2px" }}>₽</span>
             </div>
             <div style={{ fontSize: "11px", color: "#AEAEB2", marginTop: "2px" }}>
-              {(actualSpent / rate).toLocaleString("en-US", { maximumFractionDigits: 0 })} $
+              {fmt(toUsd(actualSpent, "RUB", rate), "USD")}
             </div>
             <div style={{ fontSize: "10px", color: "#AEAEB2", marginTop: "3px", whiteSpace: "nowrap" }}>
-              of {totalPlanned.toLocaleString("en-US", { maximumFractionDigits: 0 })} ₽ planned
+              of {fmt(plannedSpent, "RUB")} planned
             </div>
           </div>
 
@@ -289,11 +274,11 @@ export default function DashboardPage() {
               Pockets
             </div>
             <div style={{ fontSize: "17px", fontWeight: 600, letterSpacing: "-0.4px", color: "#0071E3" }}>
-              {pocketTotal.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              {fmt(pocketTotal, "RUB").replace(" ₽", "")}
               <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "2px" }}>₽</span>
             </div>
             <div style={{ fontSize: "11px", color: "#AEAEB2", marginTop: "2px" }}>
-              {(pocketTotal / rate).toLocaleString("en-US", { maximumFractionDigits: 0 })} $
+              {fmt(toUsd(pocketTotal, "RUB", rate), "USD")}
             </div>
           </div>
         </div>
@@ -301,15 +286,16 @@ export default function DashboardPage() {
 
       <section>
         <p className="mb-[10px] mt-5 px-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--ink3)]">
-          Recent spending
+          Recent activity
         </p>
         <div className="overflow-hidden rounded-2xl bg-[var(--white)]">
           {recentTransactions.length === 0 ? (
             <div className="px-4 py-4 text-[13px] text-[var(--ink3)]">No transactions yet.</div>
           ) : (
             recentTransactions.map((transaction, index) => {
-              const categoryName =
-                categoryNameById[transaction.categoryId] || transaction.note.trim() || "Без категории";
+              const categoryName = transaction.type === "income"
+                ? transaction.categoryId.trim() || "Income"
+                : categoryNameById[transaction.categoryId] || transaction.note.trim() || "Без категории";
               const kind = detectExpenseKind(categoryName);
               return (
                 <div
@@ -334,9 +320,12 @@ export default function DashboardPage() {
                     amount={transaction.amount}
                     currency={transaction.currency}
                     exchangeRate={monthData.exchangeRate}
-                    primaryClassName="text-[14px] font-semibold tracking-[-0.3px] text-[var(--red)]"
+                    primaryClassName={cn(
+                      "text-[14px] font-semibold tracking-[-0.3px]",
+                      transaction.type === "income" ? "text-[var(--green)]" : "text-[var(--red)]",
+                    )}
                     secondaryClassName="mt-0.5 text-[11px] text-[var(--ink3)]"
-                    negative
+                    negative={transaction.type !== "income"}
                   />
                 </div>
               );

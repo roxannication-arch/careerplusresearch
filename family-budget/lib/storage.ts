@@ -352,6 +352,63 @@ export function getMonthData(state: BudgetStorageState, monthKey: string): Month
   return state.months[monthKey] ?? createDefaultMonthData();
 }
 
+function getTransactions(state: BudgetStorageState, monthKey: string): Transaction[] {
+  return getMonthData(state, monthKey).transactions;
+}
+
+export function getActualIncome(state: BudgetStorageState, month: string, rate: number): number {
+  const transactions = getTransactions(state, month);
+  return transactions
+    .filter((transaction) => transaction.type === "income")
+    .reduce((sum, transaction) => {
+      const inRub = transaction.currency === "USD" ? transaction.amount * rate : transaction.amount;
+      return sum + inRub;
+    }, 0);
+}
+
+export function getActualSpent(state: BudgetStorageState, month: string, rate: number): number {
+  const transactions = getTransactions(state, month);
+  return transactions
+    .filter((transaction) => transaction.type === "expense")
+    .reduce((sum, transaction) => {
+      const inRub = transaction.currency === "USD" ? transaction.amount * rate : transaction.amount;
+      return sum + inRub;
+    }, 0);
+}
+
+export function getPlannedIncome(state: BudgetStorageState, month: string, rate: number): number {
+  const monthData = getMonthData(state, month);
+  return monthData.incomes.reduce((sum, income) => {
+    if (typeof income.amount !== "number" || !Number.isFinite(income.amount)) {
+      return sum;
+    }
+    const inRub = income.currency === "USD" ? income.amount * rate : income.amount;
+    return sum + inRub;
+  }, 0);
+}
+
+export function getPlannedExpenses(state: BudgetStorageState, month: string, rate: number): number {
+  const monthData = getMonthData(state, month);
+  return monthData.expenses.reduce((sum, expense) => {
+    if (typeof expense.amount !== "number" || !Number.isFinite(expense.amount)) {
+      return sum;
+    }
+    const inRub = expense.currency === "USD" ? expense.amount * rate : expense.amount;
+    return sum + inRub;
+  }, 0);
+}
+
+export function getPocketContributions(state: BudgetStorageState, month: string, rate: number): number {
+  const monthData = getMonthData(state, month);
+  return monthData.pockets.reduce((sum, pocket) => {
+    if (!Number.isFinite(pocket.savedAmount)) {
+      return sum;
+    }
+    const inRub = pocket.currency === "USD" ? pocket.savedAmount * rate : pocket.savedAmount;
+    return sum + inRub;
+  }, 0);
+}
+
 export function hasMonthPlanData(monthData: MonthBudgetData): boolean {
   const hasIncomeData = monthData.incomes.some(
     (income) =>

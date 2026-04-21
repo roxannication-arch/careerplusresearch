@@ -3,20 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useBudget } from "@/components/BudgetProvider";
-import { convertCurrency, toRub, toUsd } from "@/lib/currency";
+import { convertCurrency, fmt, toRub, toUsd } from "@/lib/currency";
 import { Currency } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type IconKind = "rent" | "groceries" | "transport" | "entertainment" | "phone";
 
-const amountFormatter = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 0,
-});
-
 function formatSignedAmount(amount: number, currency: Currency): string {
-  const sign = amount < 0 ? "−" : "";
-  const symbol = currency === "USD" ? "$" : "₽";
-  return `${sign}${symbol}${amountFormatter.format(Math.abs(amount))}`;
+  const sign = amount < 0 ? "−" : amount > 0 ? "+" : "";
+  return `${sign}${fmt(Math.abs(amount), currency)}`;
 }
 
 function formatDateGroupLabel(dateValue: string): string {
@@ -43,16 +38,8 @@ function formatDateGroupLabel(dateValue: string): string {
   });
 }
 
-function formatTime(dateValue: string): string {
-  const date = new Date(`${dateValue}T00:00:00`);
-  if (Number.isNaN(date.getTime())) {
-    return "00:00";
-  }
-
-  return date.toLocaleTimeString("ru-RU", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function formatTime(): string {
+  return "00:00";
 }
 
 function detectExpenseKind(name: string): IconKind {
@@ -199,9 +186,6 @@ export default function TransactionsPage() {
   const filteredTransactions = useMemo(
     () =>
       monthData.transactions.filter((transaction) => {
-        if (transaction.type !== "expense") {
-          return false;
-        }
         if (categoryFilter !== "all" && transaction.categoryId !== categoryFilter) {
           return false;
         }
@@ -358,13 +342,16 @@ export default function TransactionsPage() {
             </p>
             <div className="overflow-hidden rounded-2xl bg-[var(--white)]">
               {group.transactions.map((transaction, index) => {
-                const categoryName =
-                  categoryLabelMap.get(transaction.categoryId) ?? "Без категории";
+                const isIncome = transaction.type === "income";
+                const categoryName = isIncome
+                  ? transaction.categoryId || "Income"
+                  : categoryLabelMap.get(transaction.categoryId) ?? "Без категории";
                 const kind = detectExpenseKind(categoryName);
                 const converted =
                   transaction.currency === "USD"
                     ? toRub(transaction.amount, "USD", monthData.exchangeRate)
                     : toUsd(transaction.amount, "RUB", monthData.exchangeRate);
+                const amountSign = isIncome ? 1 : -1;
 
                 return (
                   <div
@@ -380,21 +367,26 @@ export default function TransactionsPage() {
                         {categoryName}
                       </p>
                       <p className="mt-[1px] truncate text-[11px] text-[var(--ink3)]">
-                        {transaction.note.trim() || "No note"}
+                        {transaction.note.trim() || (isIncome ? "Income received" : "No note")}
                       </p>
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className="text-[14px] font-semibold tracking-[-0.3px] text-[var(--red)]">
-                        {formatSignedAmount(-Math.abs(transaction.amount), transaction.currency)}
+                      <p
+                        className={cn(
+                          "text-[14px] font-semibold tracking-[-0.3px]",
+                          isIncome ? "text-[var(--green)]" : "text-[var(--red)]",
+                        )}
+                      >
+                        {formatSignedAmount(amountSign * Math.abs(transaction.amount), transaction.currency)}
                       </p>
                       <p className="mt-0.5 text-[11px] text-[var(--ink3)]">
                         {formatSignedAmount(
-                          -Math.abs(converted),
+                          amountSign * Math.abs(converted),
                           transaction.currency === "USD" ? "RUB" : "USD",
                         )}
                       </p>
                       <p className="mt-0.5 text-[11px] text-[var(--ink3)]">
-                        {formatTime(transaction.date)}
+                        {formatTime()}
                       </p>
                     </div>
                   </div>
@@ -583,6 +575,15 @@ export default function TransactionsPage() {
                 }
 
                 addTransaction({
+                  amount: parsed,
+                  currency,
+                  categoryId: entryType === "income" ? sourceLabel : activeCategoryId,
+                  type: entryType,
+                  date,
+                  note,
+                });
+                // Debug confirmation for income/expense payload persisted by provider.
+                console.log("Saved transaction", {
                   amount: parsed,
                   currency,
                   categoryId: entryType === "income" ? sourceLabel : activeCategoryId,
