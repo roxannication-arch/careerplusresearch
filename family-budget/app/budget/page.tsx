@@ -283,6 +283,7 @@ export default function BudgetPage() {
     copyPlanFromMonth,
     updateIncome,
     addIncome,
+    deleteIncome,
     updateExpense,
     addExpense,
   } = useBudget();
@@ -422,6 +423,14 @@ export default function BudgetPage() {
             >
               {income.currency}
             </button>
+            <button
+              type="button"
+              onClick={() => deleteIncome(income.id)}
+              className="ml-1 rounded-[6px] border border-[0.5px] border-[var(--line2)] px-2 py-1 text-[10px] font-semibold text-[var(--ink3)]"
+              aria-label="Delete income row"
+            >
+              ×
+            </button>
           </div>
         ))}
         <button
@@ -480,6 +489,14 @@ export default function BudgetPage() {
               className="ml-[6px] rounded-[5px] border border-[0.5px] border-[var(--line2)] bg-[var(--bg)] px-[7px] py-[3px] text-[10px] font-semibold text-[var(--ink2)]"
             >
               {income.currency}
+            </button>
+            <button
+              type="button"
+              onClick={() => deleteIncome(income.id)}
+              className="ml-1 rounded-[6px] border border-[0.5px] border-[var(--line2)] px-2 py-1 text-[10px] font-semibold text-[var(--ink3)]"
+              aria-label="Delete income row"
+            >
+              ×
             </button>
           </div>
         ))}

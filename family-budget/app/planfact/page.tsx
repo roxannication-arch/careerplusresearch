@@ -260,9 +260,15 @@ export default function PlanFactPage() {
       me: ["roksana", "roxana", "роксана", "рокс"],
       milena: ["milena", "милена", "милен"],
     };
+    const normalize = (value: string) => value.trim().toLowerCase();
+    const incomeTransactions = monthData.transactions.filter((transaction) => transaction.type === "income");
     return (["me", "milena"] as const).map((owner) => {
       const ownerRows = monthData.incomes.filter((income) => income.owner === owner);
       const ownerName = ownerNameMap[owner];
+      const plannedSourceNames = ownerRows
+        .map((row) => row.name.trim())
+        .filter(Boolean)
+        .map(normalize);
       const plannedRub = ownerRows.reduce(
         (sum, row) =>
           sum +
@@ -283,11 +289,11 @@ export default function PlanFactPage() {
           ),
         0,
       );
-      const actual = monthData.transactions
-        .filter((transaction) => transaction.type === "income")
+      const aliases = [...ownerSourceAliases[owner], ...plannedSourceNames];
+      const actual = incomeTransactions
         .filter((transaction) => {
-          const source = transaction.categoryId.trim().toLowerCase();
-          return ownerSourceAliases[owner].some((alias) => source.includes(alias));
+          const source = normalize(transaction.categoryId);
+          return aliases.some((alias) => source.includes(alias) || alias.includes(source));
         })
         .reduce(
           (accumulator, transaction) => ({

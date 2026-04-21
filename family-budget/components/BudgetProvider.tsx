@@ -216,10 +216,6 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
         if (!incomeToDelete) {
           return month;
         }
-        const ownerIncomes = month.incomes.filter((income) => income.owner === incomeToDelete.owner);
-        if (ownerIncomes.length <= 1) {
-          return month;
-        }
 
         return {
           ...month,
