@@ -27,3 +27,17 @@ export function parseIncomeCategoryId(categoryId: string): {
     source,
   };
 }
+
+export function normalizeIncomeSource(value: string): string {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "roksana" || normalized === "роксана") {
+    return "Roksana";
+  }
+  if (normalized === "milena" || normalized === "милена") {
+    return "Milena";
+  }
+  if (normalized === "other" || normalized === "другое") {
+    return "Other";
+  }
+  return value.trim() || "Other";
+}

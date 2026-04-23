@@ -144,7 +144,7 @@ export default function TransactionsPage() {
   const [note, setNote] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [categoryId, setCategoryId] = useState(monthData.expenses[0]?.id ?? "");
-  const [incomeSource, setIncomeSource] = useState("");
+  const [incomeSource, setIncomeSource] = useState<"Roksana" | "Milena" | "Other">("Roksana");
   const [incomeOwner, setIncomeOwner] = useState<"me" | "milena">("me");
   const filterContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -534,19 +534,19 @@ export default function TransactionsPage() {
               <>
                 <div className="mb-[14px]">
                   <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
-                    Owner
+                    Source
                   </p>
                   <div className="flex items-center gap-2">
-                    {([
-                      { key: "me", label: "Roksana" },
-                      { key: "milena", label: "Milena" },
-                    ] as const).map((item) => {
-                      const active = item.key === incomeOwner;
+                    {(["Roksana", "Milena", "Other"] as const).map((source) => {
+                      const active = incomeSource === source;
                       return (
                         <button
-                          key={item.key}
+                          key={source}
                           type="button"
-                          onClick={() => setIncomeOwner(item.key)}
+                          onClick={() => {
+                            setIncomeSource(source);
+                            setIncomeOwner(source === "Milena" ? "milena" : "me");
+                          }}
                           className={cn(
                             "rounded-[10px] px-4 py-2 text-[13px] transition-colors",
                             active
@@ -554,23 +554,11 @@ export default function TransactionsPage() {
                               : "bg-[var(--bg)] text-[var(--ink3)]",
                           )}
                         >
-                          {item.label}
+                          {source}
                         </button>
                       );
                     })}
                   </div>
-                </div>
-                <div className="mb-[14px]">
-                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
-                    Source
-                  </p>
-                  <input
-                    type="text"
-                    value={incomeSource}
-                    onChange={(event) => setIncomeSource(event.target.value)}
-                    placeholder="Salary / students / etc."
-                    className="w-full rounded-[10px] border-0 bg-[var(--bg)] px-[14px] py-3 text-[15px] outline-none"
-                  />
                 </div>
               </>
             )}
@@ -609,7 +597,7 @@ export default function TransactionsPage() {
                 if (entryType === "expense" && !activeCategoryId) {
                   return;
                 }
-                if (entryType === "income" && !incomeSource.trim()) {
+                if (entryType === "income" && !incomeSource) {
                   return;
                 }
 
@@ -618,9 +606,10 @@ export default function TransactionsPage() {
                   currency,
                   categoryId:
                     entryType === "income"
-                      ? encodeIncomeCategoryId(incomeOwner, incomeSource.trim())
+                      ? encodeIncomeCategoryId(incomeOwner, incomeSource)
                       : activeCategoryId,
                   type: entryType,
+                  source: entryType === "income" ? incomeSource : undefined,
                   date,
                   note,
                 } as const;
@@ -631,7 +620,7 @@ export default function TransactionsPage() {
                 console.log("Saved transaction", payload);
                 setAmountInput("");
                 setNote("");
-                setIncomeSource("");
+                setIncomeSource("Roksana");
                 setEntryType("expense");
                 setDate(new Date().toISOString().slice(0, 10));
                 setIsSheetOpen(false);

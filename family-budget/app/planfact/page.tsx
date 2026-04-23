@@ -133,6 +133,11 @@ function AmountPair({
 export default function PlanFactPage() {
   const { monthData } = useBudget();
 
+  const incomeTransactions = useMemo(
+    () => monthData.transactions.filter((transaction) => transaction.type === "income"),
+    [monthData.transactions],
+  );
+
   const plannedIncomeByOwner = useMemo(() => {
     return monthData.incomes.reduce(
       (accumulator, income) => {
@@ -145,30 +150,33 @@ export default function PlanFactPage() {
   }, [monthData.exchangeRate, monthData.incomes]);
 
   const actualIncomeByOwner = useMemo(() => {
-    return monthData.transactions
-      .filter((transaction) => transaction.type === "income")
-      .reduce(
-        (accumulator, transaction) => {
-          const parsed = parseIncomeCategoryId(transaction.categoryId);
-          if (!parsed.owner) {
-            return accumulator;
+    const getActualBySource = (source: "Roksana" | "Milena"): number =>
+      incomeTransactions
+        .filter((transaction) => {
+          if (transaction.source) {
+            return transaction.source === source;
           }
-          accumulator[parsed.owner] += toRub(transaction.amount, transaction.currency, monthData.exchangeRate);
-          return accumulator;
-        },
-        { me: 0, milena: 0 } as Record<"me" | "milena", number>,
-      );
-  }, [monthData.exchangeRate, monthData.transactions]);
+          const parsed = parseIncomeCategoryId(transaction.categoryId);
+          if (parsed.owner === "me") {
+            return source === "Roksana";
+          }
+          if (parsed.owner === "milena") {
+            return source === "Milena";
+          }
+          return false;
+        })
+        .reduce(
+          (sum, transaction) => sum + toRub(transaction.amount, transaction.currency, monthData.exchangeRate),
+          0,
+        );
+    return {
+      me: getActualBySource("Roksana"),
+      milena: getActualBySource("Milena"),
+    };
+  }, [incomeTransactions, monthData.exchangeRate]);
 
   const plannedIncomeTotal = plannedIncomeByOwner.me + plannedIncomeByOwner.milena;
   const actualIncomeTotal = actualIncomeByOwner.me + actualIncomeByOwner.milena;
-  const incomeProgress = plannedIncomeTotal > 0 ? (actualIncomeTotal / plannedIncomeTotal) * 100 : 0;
-  const incomeTone =
-    incomeProgress >= 100
-      ? "text-[var(--green)]"
-      : incomeProgress >= 50
-        ? "text-[var(--amber)]"
-        : "text-[var(--red)]";
 
   const plannedTotals = useMemo(() => calculatePlannedExpenseTotals(monthData), [monthData]);
   const actualTotals = useMemo(() => calculateTransactionTotals(monthData), [monthData]);
@@ -248,63 +256,87 @@ export default function PlanFactPage() {
   );
 
   const incomeOwnerCards = [
-    { key: "me" as const, label: "Роксана", planned: plannedIncomeByOwner.me, actual: actualIncomeByOwner.me },
-    { key: "milena" as const, label: "Милена", planned: plannedIncomeByOwner.milena, actual: actualIncomeByOwner.milena },
+    { key: "me" as const, label: "Roksana", planned: plannedIncomeByOwner.me, actual: actualIncomeByOwner.me },
+    { key: "milena" as const, label: "Milena", planned: plannedIncomeByOwner.milena, actual: actualIncomeByOwner.milena },
   ];
   const hasExpenseTransactions = monthData.transactions.some((transaction) => transaction.type === "expense");
 
   return (
     <div className="-mx-4 -mt-6 bg-[var(--bg)] px-4 pt-6 pb-4">
-      <section className="mb-3 rounded-[20px] bg-[var(--white)] px-5 py-[18px]">
+      <section className="mb-3 rounded-2xl bg-[var(--white)] p-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Заработано сейчас</p>
-            <BoldDigits
-              value={fmt(actualIncomeTotal, "RUB")}
-              className="text-[32px] font-light leading-none tracking-[-1px] text-[var(--ink)]"
-            />
-            <p className="mt-1 text-[12px] text-[var(--ink3)]">{fmt(toUsd(actualIncomeTotal, "RUB", monthData.exchangeRate), "USD")}</p>
+            <p className="text-[11px] text-[#AEAEB2]">Total earned</p>
+            <p className="mt-1 text-[17px] font-semibold text-[var(--ink)]">{fmt(actualIncomeTotal, "RUB")}</p>
+            <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{fmt(toUsd(actualIncomeTotal, "RUB", monthData.exchangeRate), "USD")}</p>
           </div>
           <div className="text-right">
-            <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">План дохода</p>
-            <p className={cn("text-[28px] font-bold tracking-[-0.5px]", incomeTone)}>
-              {Math.max(0, Math.round(incomeProgress))}%
-            </p>
-            <p className="mt-1 text-[12px] text-[var(--ink3)]">из {fmt(plannedIncomeTotal, "RUB")}</p>
+            <p className="text-[11px] text-[#AEAEB2]">Planned</p>
+            <p className="mt-1 text-[17px] font-semibold text-[var(--ink)]">{fmt(plannedIncomeTotal, "RUB")}</p>
+            <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{fmt(toUsd(plannedIncomeTotal, "RUB", monthData.exchangeRate), "USD")}</p>
           </div>
         </div>
+        <p className={cn("mt-3 text-[12px]", actualIncomeTotal >= plannedIncomeTotal ? "text-[var(--green)]" : "text-[#AEAEB2]")}>
+          {actualIncomeTotal >= plannedIncomeTotal
+            ? "Goal reached ✓"
+            : `${fmt(Math.max(plannedIncomeTotal - actualIncomeTotal, 0), "RUB")} still to earn`}
+        </p>
       </section>
 
-      <p className="mb-[10px] mt-5 px-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
-        Доход по каждой
-      </p>
       {incomeOwnerCards.map((ownerCard) => {
+        const diff = ownerCard.actual - ownerCard.planned;
         const remaining = Math.max(ownerCard.planned - ownerCard.actual, 0);
         const progress = ownerCard.planned > 0 ? Math.min((ownerCard.actual / ownerCard.planned) * 100, 100) : 0;
+        const progressColor = progress >= 80 ? "var(--green)" : progress >= 50 ? "var(--amber)" : "var(--red)";
+        const earnedClass = ownerCard.actual < ownerCard.planned ? "text-[var(--red)]" : "text-[var(--green)]";
+        const badgeClass =
+          diff > 0
+            ? "bg-[var(--green-bg)] text-[var(--green)]"
+            : diff < 0
+              ? "bg-[var(--red-bg)] text-[var(--red)]"
+              : "bg-[var(--bg)] text-[var(--ink3)]";
+        const badgeText =
+          diff > 0
+            ? `${fmt(diff, "RUB")} ahead`
+            : diff < 0
+              ? `${fmt(Math.abs(diff), "RUB")} behind`
+              : "On track";
+
         return (
           <article key={ownerCard.key} className="mb-[10px] rounded-2xl bg-[var(--white)] p-4">
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-[14px] flex items-center justify-between">
               <p className="text-[15px] font-semibold tracking-[-0.3px] text-[var(--ink)]">{ownerCard.label}</p>
-              <span className="rounded-[20px] bg-[var(--blue-bg)] px-[9px] py-1 text-[11px] font-semibold text-[var(--blue)]">
-                {Math.round(progress)}%
+              <span className={cn("rounded-[20px] px-[9px] py-1 text-[11px] font-semibold", badgeClass)}>
+                {badgeText}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-[10px] bg-[var(--bg)] px-[10px] py-[9px]">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">План</p>
-                <p className="text-[14px] font-bold tracking-[-0.3px] text-[var(--ink)]">{fmt(ownerCard.planned, "RUB")}</p>
+
+            <div className="mb-3 grid grid-cols-2 gap-2">
+              <div className="rounded-[10px] bg-[#F5F5F7] px-[13px] py-[11px]">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#AEAEB2]">PLANNED</p>
+                <p className="text-[16px] font-bold tracking-[-0.4px] text-[var(--ink)]">{fmt(ownerCard.planned, "RUB")}</p>
+                <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{fmt(toUsd(ownerCard.planned, "RUB", monthData.exchangeRate), "USD")}</p>
               </div>
-              <div className="rounded-[10px] bg-[var(--bg)] px-[10px] py-[9px]">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">В кассе</p>
-                <p className="text-[14px] font-bold tracking-[-0.3px] text-[var(--green)]">{fmt(ownerCard.actual, "RUB")}</p>
-              </div>
-              <div className="rounded-[10px] bg-[var(--bg)] px-[10px] py-[9px]">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">Дозаработать</p>
-                <p className="text-[14px] font-bold tracking-[-0.3px] text-[var(--amber)]">{fmt(remaining, "RUB")}</p>
+              <div className="rounded-[10px] bg-[#F5F5F7] px-[13px] py-[11px]">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#AEAEB2]">EARNED</p>
+                <p className={cn("text-[16px] font-bold tracking-[-0.4px]", earnedClass)}>{fmt(ownerCard.actual, "RUB")}</p>
+                <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{fmt(toUsd(ownerCard.actual, "RUB", monthData.exchangeRate), "USD")}</p>
               </div>
             </div>
+
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-[11px] text-[#AEAEB2]">Still to earn:</p>
+              {ownerCard.actual >= ownerCard.planned ? (
+                <p className="text-[11px] font-semibold text-[var(--green)]">Done ✓</p>
+              ) : (
+                <p className="text-[11px] font-semibold text-[var(--ink)]">
+                  {fmt(remaining, "RUB")} ({fmt(toUsd(remaining, "RUB", monthData.exchangeRate), "USD")})
+                </p>
+              )}
+            </div>
+
             <div className="mt-3 h-[3px] overflow-hidden rounded-[2px] bg-[var(--bg)]">
-              <div className="h-full rounded-[2px] bg-[var(--green)]" style={{ width: `${progress}%` }} />
+              <div className="h-full rounded-[2px]" style={{ width: `${progress}%`, backgroundColor: progressColor }} />
             </div>
           </article>
         );

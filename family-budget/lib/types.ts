@@ -30,6 +30,7 @@ export interface Transaction {
   categoryId: string;
   type: "expense" | "income";
   owner?: IncomeOwner | null;
+  source?: string;
   date: string;
   note: string;
 }

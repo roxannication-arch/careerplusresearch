@@ -147,11 +147,14 @@ function normalizeTransaction(item: unknown): Transaction {
   const source = (item ?? {}) as Partial<Transaction>;
   const rawType = (source as { type?: unknown }).type;
   const normalizedType = rawType === "income" ? "income" : "expense";
+  const rawOwner = (source as { owner?: unknown }).owner;
+  const normalizedOwner = rawOwner === "milena" ? "milena" : rawOwner === "me" ? "me" : null;
   return {
     id: normalizeId(source.id),
     amount: normalizeNumber(source.amount),
     currency: ensureCurrency(source.currency),
     type: normalizedType,
+    owner: normalizedType === "income" ? normalizedOwner : null,
     categoryId: normalizeName(source.categoryId),
     date: normalizeDate(source.date),
     note: normalizeName(source.note),
