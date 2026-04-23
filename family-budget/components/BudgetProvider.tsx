@@ -212,18 +212,18 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
   const deleteIncome = useCallback(
     (id: string) => {
       updateCurrentMonth((month) => {
-        const incomeToDelete = month.incomes.find((income) => income.id === id);
-        if (!incomeToDelete) {
-          return month;
-        }
-        const ownerIncomes = month.incomes.filter((income) => income.owner === incomeToDelete.owner);
-        if (ownerIncomes.length <= 1) {
-          return month;
-        }
-
+        const nextIncomes = month.incomes.filter((income) => income.id !== id);
+        const hasMe = nextIncomes.some((income) => income.owner === "me");
+        const hasMilena = nextIncomes.some((income) => income.owner === "milena");
         return {
           ...month,
-          incomes: month.incomes.filter((income) => income.id !== id),
+          incomes: [
+            ...nextIncomes,
+            ...(hasMe ? [] : [{ id: createId(), owner: "me" as const, name: "", amount: null, currency: "RUB" as const }]),
+            ...(hasMilena
+              ? []
+              : [{ id: createId(), owner: "milena" as const, name: "", amount: null, currency: "RUB" as const }]),
+          ],
         };
       });
     },
@@ -385,7 +385,10 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
 
   const addTransaction = useCallback(
     (input: Omit<Transaction, "id">) => {
-      if (!Number.isFinite(input.amount) || input.amount <= 0 || !input.categoryId) {
+      if (!Number.isFinite(input.amount) || input.amount <= 0) {
+        return;
+      }
+      if (!input.categoryId.trim()) {
         return;
       }
 

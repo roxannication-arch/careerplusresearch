@@ -58,3 +58,10 @@ export function formatRub(value: number): string {
 export function formatUsd(value: number): string {
   return usdFormatter.format(normalizeAmount(value));
 }
+
+export function fmt(amount: number, currency: Currency = "RUB"): string {
+  const symbol = currency === "RUB" ? "₽" : "$";
+  const normalized = normalizeAmount(amount);
+  const formatted = Math.round(normalized).toLocaleString("en-US");
+  return currency === "RUB" ? `${formatted} ${symbol}` : `${symbol}${formatted}`;
+}

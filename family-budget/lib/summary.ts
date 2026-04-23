@@ -54,10 +54,24 @@ export function calculatePlannedExpenseTotals(monthData: MonthBudgetData): Total
 
 export function calculateTransactionTotals(monthData: MonthBudgetData): Totals {
   return sumRubUsd(
-    monthData.transactions.map((transaction) => ({
-      amount: amountOrZero(transaction.amount),
-      currency: transaction.currency,
-    })),
+    monthData.transactions
+      .filter((transaction) => transaction.type === "expense")
+      .map((transaction) => ({
+        amount: amountOrZero(transaction.amount),
+        currency: transaction.currency,
+      })),
+    monthData.exchangeRate,
+  );
+}
+
+export function calculateIncomeTransactionTotals(monthData: MonthBudgetData): Totals {
+  return sumRubUsd(
+    monthData.transactions
+      .filter((transaction) => transaction.type === "income")
+      .map((transaction) => ({
+        amount: amountOrZero(transaction.amount),
+        currency: transaction.currency,
+      })),
     monthData.exchangeRate,
   );
 }
@@ -127,6 +141,9 @@ export function calculateCategorySummary(monthData: MonthBudgetData): CategorySu
   }
 
   for (const transaction of monthData.transactions) {
+    if (transaction.type !== "expense") {
+      continue;
+    }
     const category = monthData.expenses.find((item) => item.id === transaction.categoryId);
     if (!category) {
       continue;

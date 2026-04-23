@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useBudget } from "@/components/BudgetProvider";
 import { getMonthLabel } from "@/lib/storage";
@@ -20,12 +20,6 @@ export function TopBar() {
   const pathname = usePathname();
   const [isRateEditing, setIsRateEditing] = useState(false);
   const [rateDraft, setRateDraft] = useState(String(Math.round(monthData.exchangeRate)));
-
-  useEffect(() => {
-    if (!isRateEditing) {
-      setRateDraft(String(Math.round(monthData.exchangeRate)));
-    }
-  }, [isRateEditing, monthData.exchangeRate]);
 
   const commitRate = () => {
     const parsed = Number.parseFloat(rateDraft);
@@ -68,7 +62,10 @@ export function TopBar() {
             ) : (
               <button
                 type="button"
-                onClick={() => setIsRateEditing(true)}
+                onClick={() => {
+                  setRateDraft(String(Math.round(monthData.exchangeRate)));
+                  setIsRateEditing(true);
+                }}
                 className="rounded-[20px] bg-[var(--blue-bg)] px-[11px] py-[6px] text-[12px] font-semibold text-[var(--blue)]"
               >
                 $1 = ₽{Math.round(monthData.exchangeRate)}

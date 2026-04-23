@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useBudget } from "@/components/BudgetProvider";
 import { convertCurrency, toRub, toUsd } from "@/lib/currency";
+import { encodeIncomeCategoryId } from "@/lib/income";
 import { Currency } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -128,6 +129,7 @@ export default function TransactionsPage() {
   const { monthData, addTransaction } = useBudget();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [entryType, setEntryType] = useState<"expense" | "income">("expense");
 
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -142,6 +144,8 @@ export default function TransactionsPage() {
   const [note, setNote] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [categoryId, setCategoryId] = useState(monthData.expenses[0]?.id ?? "");
+  const [incomeSource, setIncomeSource] = useState("");
+  const [incomeOwner, setIncomeOwner] = useState<"me" | "milena">("me");
   const filterContainerRef = useRef<HTMLDivElement | null>(null);
 
   const categoryLabelMap = new Map(
@@ -197,6 +201,9 @@ export default function TransactionsPage() {
   const filteredTransactions = useMemo(
     () =>
       monthData.transactions.filter((transaction) => {
+        if (transaction.type !== "expense") {
+          return false;
+        }
         if (categoryFilter !== "all" && transaction.categoryId !== categoryFilter) {
           return false;
         }
@@ -402,7 +409,10 @@ export default function TransactionsPage() {
 
       <button
         type="button"
-        onClick={() => setIsSheetOpen(true)}
+        onClick={() => {
+          setEntryType("expense");
+          setIsSheetOpen(true);
+        }}
         className="fixed right-[18px] bottom-[92px] z-[110] inline-flex items-center gap-[7px] rounded-[50px] border-0 bg-[var(--blue)] px-5 py-[13px] text-[13px] font-semibold tracking-[-0.2px] text-white shadow-[0_4px_20px_rgba(0,113,227,0.30)]"
       >
         <span aria-hidden="true">+</span>
@@ -420,8 +430,34 @@ export default function TransactionsPage() {
           >
             <div className="mx-auto mb-5 h-1 w-9 rounded-[2px] bg-[var(--line2)]" />
             <h2 className="mb-5 text-[17px] font-semibold tracking-[-0.4px] text-[var(--ink)]">
-              New expense
+              {entryType === "income" ? "New income" : "New expense"}
             </h2>
+
+            <div className="mb-[14px]">
+              <div className="flex items-center gap-2">
+                {([
+                  { key: "expense", label: "Expense" },
+                  { key: "income", label: "Income" },
+                ] as const).map((item) => {
+                  const active = item.key === entryType;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => setEntryType(item.key)}
+                      className={cn(
+                        "rounded-[10px] px-4 py-2 text-[13px] transition-colors",
+                        active
+                          ? "bg-[#0071E3] font-semibold text-white"
+                          : "bg-[#F5F5F7] text-[#AEAEB2]",
+                      )}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             <div className="mb-[14px]">
               <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
@@ -467,32 +503,77 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            <div className="mb-[14px]">
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
-                Category
-              </p>
-              <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {monthData.expenses.map((expense, index) => {
-                  const label = categoryLabelMap.get(expense.id) ?? `Category ${index + 1}`;
-                  const active = expense.id === activeCategoryId;
-                  return (
-                    <button
-                      key={expense.id}
-                      type="button"
-                      onClick={() => setCategoryId(expense.id)}
-                      className={cn(
-                        "shrink-0 rounded-[10px] px-4 py-2 text-[13px] transition-colors",
-                        active
-                          ? "bg-[var(--blue-bg)] font-semibold text-[var(--blue)]"
-                          : "bg-[var(--bg)] text-[var(--ink3)]",
-                      )}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
+            {entryType === "expense" ? (
+              <div className="mb-[14px]">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+                  Category
+                </p>
+                <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {monthData.expenses.map((expense, index) => {
+                    const label = categoryLabelMap.get(expense.id) ?? `Category ${index + 1}`;
+                    const active = expense.id === activeCategoryId;
+                    return (
+                      <button
+                        key={expense.id}
+                        type="button"
+                        onClick={() => setCategoryId(expense.id)}
+                        className={cn(
+                          "shrink-0 rounded-[10px] px-4 py-2 text-[13px] transition-colors",
+                          active
+                            ? "bg-[var(--blue-bg)] font-semibold text-[var(--blue)]"
+                            : "bg-[var(--bg)] text-[var(--ink3)]",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="mb-[14px]">
+                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+                    Owner
+                  </p>
+                  <div className="flex items-center gap-2">
+                    {([
+                      { key: "me", label: "Roksana" },
+                      { key: "milena", label: "Milena" },
+                    ] as const).map((item) => {
+                      const active = item.key === incomeOwner;
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => setIncomeOwner(item.key)}
+                          className={cn(
+                            "rounded-[10px] px-4 py-2 text-[13px] transition-colors",
+                            active
+                              ? "bg-[var(--blue-bg)] font-semibold text-[var(--blue)]"
+                              : "bg-[var(--bg)] text-[var(--ink3)]",
+                          )}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="mb-[14px]">
+                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+                    Source
+                  </p>
+                  <input
+                    type="text"
+                    value={incomeSource}
+                    onChange={(event) => setIncomeSource(event.target.value)}
+                    placeholder="Salary / students / etc."
+                    className="w-full rounded-[10px] border-0 bg-[var(--bg)] px-[14px] py-3 text-[15px] outline-none"
+                  />
+                </div>
+              </>
+            )}
 
             <div className="mb-[14px]">
               <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
@@ -522,25 +603,42 @@ export default function TransactionsPage() {
               type="button"
               onClick={() => {
                 const parsed = Number.parseFloat(amountInput);
-                if (!Number.isFinite(parsed) || parsed <= 0 || !activeCategoryId) {
+                if (!Number.isFinite(parsed) || parsed <= 0) {
+                  return;
+                }
+                if (entryType === "expense" && !activeCategoryId) {
+                  return;
+                }
+                if (entryType === "income" && !incomeSource.trim()) {
                   return;
                 }
 
-                addTransaction({
+                const payload = {
                   amount: parsed,
                   currency,
-                  categoryId: activeCategoryId,
+                  categoryId:
+                    entryType === "income"
+                      ? encodeIncomeCategoryId(incomeOwner, incomeSource.trim())
+                      : activeCategoryId,
+                  type: entryType,
                   date,
                   note,
+                } as const;
+
+                addTransaction({
+                  ...payload,
                 });
+                console.log("Saved transaction", payload);
                 setAmountInput("");
                 setNote("");
+                setIncomeSource("");
+                setEntryType("expense");
                 setDate(new Date().toISOString().slice(0, 10));
                 setIsSheetOpen(false);
               }}
               className="mt-2 w-full rounded-xl bg-[var(--blue)] px-4 py-[14px] text-[15px] font-semibold text-white"
             >
-              Save expense
+              {entryType === "income" ? "Add income" : "Save expense"}
             </button>
           </div>
         </div>

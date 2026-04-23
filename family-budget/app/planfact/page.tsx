@@ -4,31 +4,12 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import { useBudget } from "@/components/BudgetProvider";
-import { toRub, toUsd } from "@/lib/currency";
+import { fmt, toRub, toUsd } from "@/lib/currency";
+import { parseIncomeCategoryId } from "@/lib/income";
 import { calculatePlannedExpenseTotals, calculateTransactionTotals } from "@/lib/summary";
-import { Currency } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type IconKind = "rent" | "groceries" | "transport" | "entertainment" | "phone";
-
-const compactNumber = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 0,
-});
-
-function formatCompactCurrency(value: number, currency: Currency): string {
-  const symbol = currency === "USD" ? "$" : "₽";
-  return `${symbol}${compactNumber.format(Math.round(Math.abs(value)))}`;
-}
-
-function formatSignedRubDiff(value: number): string {
-  if (value > 0) {
-    return `+${formatCompactCurrency(value, "RUB")}`;
-  }
-  if (value < 0) {
-    return `−${formatCompactCurrency(Math.abs(value), "RUB")}`;
-  }
-  return "On track";
-}
 
 function BoldDigits({ value, className }: { value: string; className: string }) {
   return (
@@ -151,6 +132,44 @@ function AmountPair({
 
 export default function PlanFactPage() {
   const { monthData } = useBudget();
+
+  const plannedIncomeByOwner = useMemo(() => {
+    return monthData.incomes.reduce(
+      (accumulator, income) => {
+        const amount = typeof income.amount === "number" && Number.isFinite(income.amount) ? income.amount : 0;
+        accumulator[income.owner] += toRub(amount, income.currency, monthData.exchangeRate);
+        return accumulator;
+      },
+      { me: 0, milena: 0 } as Record<"me" | "milena", number>,
+    );
+  }, [monthData.exchangeRate, monthData.incomes]);
+
+  const actualIncomeByOwner = useMemo(() => {
+    return monthData.transactions
+      .filter((transaction) => transaction.type === "income")
+      .reduce(
+        (accumulator, transaction) => {
+          const parsed = parseIncomeCategoryId(transaction.categoryId);
+          if (!parsed.owner) {
+            return accumulator;
+          }
+          accumulator[parsed.owner] += toRub(transaction.amount, transaction.currency, monthData.exchangeRate);
+          return accumulator;
+        },
+        { me: 0, milena: 0 } as Record<"me" | "milena", number>,
+      );
+  }, [monthData.exchangeRate, monthData.transactions]);
+
+  const plannedIncomeTotal = plannedIncomeByOwner.me + plannedIncomeByOwner.milena;
+  const actualIncomeTotal = actualIncomeByOwner.me + actualIncomeByOwner.milena;
+  const incomeProgress = plannedIncomeTotal > 0 ? (actualIncomeTotal / plannedIncomeTotal) * 100 : 0;
+  const incomeTone =
+    incomeProgress >= 100
+      ? "text-[var(--green)]"
+      : incomeProgress >= 50
+        ? "text-[var(--amber)]"
+        : "text-[var(--red)]";
+
   const plannedTotals = useMemo(() => calculatePlannedExpenseTotals(monthData), [monthData]);
   const actualTotals = useMemo(() => calculateTransactionTotals(monthData), [monthData]);
 
@@ -162,6 +181,9 @@ export default function PlanFactPage() {
   const actualByCategory = useMemo(() => {
     const grouped = new Map<string, { rub: number; usd: number }>();
     for (const transaction of monthData.transactions) {
+      if (transaction.type !== "expense") {
+        continue;
+      }
       const existing = grouped.get(transaction.categoryId) ?? { rub: 0, usd: 0 };
       existing.rub += toRub(transaction.amount, transaction.currency, monthData.exchangeRate);
       existing.usd += toUsd(transaction.amount, transaction.currency, monthData.exchangeRate);
@@ -189,6 +211,12 @@ export default function PlanFactPage() {
             : diffRub < 0
               ? "bg-[var(--green-bg)] text-[var(--green)]"
               : "bg-[var(--bg)] text-[var(--ink3)]";
+        const badgeText =
+          diffRub > 0
+            ? `+${fmt(diffRub, "RUB")}`
+            : diffRub < 0
+              ? `−${fmt(Math.abs(diffRub), "RUB")}`
+              : "On track";
         const progressColor =
           actualRub > plannedRub
             ? "var(--red)"
@@ -211,6 +239,7 @@ export default function PlanFactPage() {
           diffRub,
           progress,
           badgeClassName,
+          badgeText,
           progressColor,
           actualPrimaryClassName,
         };
@@ -218,23 +247,80 @@ export default function PlanFactPage() {
     [actualByCategory, monthData.exchangeRate, monthData.expenses],
   );
 
-  const hasTransactions = monthData.transactions.length > 0;
+  const incomeOwnerCards = [
+    { key: "me" as const, label: "Роксана", planned: plannedIncomeByOwner.me, actual: actualIncomeByOwner.me },
+    { key: "milena" as const, label: "Милена", planned: plannedIncomeByOwner.milena, actual: actualIncomeByOwner.milena },
+  ];
+  const hasExpenseTransactions = monthData.transactions.some((transaction) => transaction.type === "expense");
 
   return (
     <div className="-mx-4 -mt-6 bg-[var(--bg)] px-4 pt-6 pb-4">
       <section className="mb-3 rounded-[20px] bg-[var(--white)] px-5 py-[18px]">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Spent so far</p>
+            <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Заработано сейчас</p>
             <BoldDigits
-              value={formatCompactCurrency(actualTotals.rub, "RUB")}
+              value={fmt(actualIncomeTotal, "RUB")}
               className="text-[32px] font-light leading-none tracking-[-1px] text-[var(--ink)]"
             />
-            <p className="mt-1 text-[12px] text-[var(--ink3)]">
-              {formatCompactCurrency(actualTotals.usd, "USD")}
+            <p className="mt-1 text-[12px] text-[var(--ink3)]">{fmt(toUsd(actualIncomeTotal, "RUB", monthData.exchangeRate), "USD")}</p>
+          </div>
+          <div className="text-right">
+            <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">План дохода</p>
+            <p className={cn("text-[28px] font-bold tracking-[-0.5px]", incomeTone)}>
+              {Math.max(0, Math.round(incomeProgress))}%
             </p>
+            <p className="mt-1 text-[12px] text-[var(--ink3)]">из {fmt(plannedIncomeTotal, "RUB")}</p>
+          </div>
+        </div>
+      </section>
+
+      <p className="mb-[10px] mt-5 px-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+        Доход по каждой
+      </p>
+      {incomeOwnerCards.map((ownerCard) => {
+        const remaining = Math.max(ownerCard.planned - ownerCard.actual, 0);
+        const progress = ownerCard.planned > 0 ? Math.min((ownerCard.actual / ownerCard.planned) * 100, 100) : 0;
+        return (
+          <article key={ownerCard.key} className="mb-[10px] rounded-2xl bg-[var(--white)] p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-[15px] font-semibold tracking-[-0.3px] text-[var(--ink)]">{ownerCard.label}</p>
+              <span className="rounded-[20px] bg-[var(--blue-bg)] px-[9px] py-1 text-[11px] font-semibold text-[var(--blue)]">
+                {Math.round(progress)}%
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-[10px] bg-[var(--bg)] px-[10px] py-[9px]">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">План</p>
+                <p className="text-[14px] font-bold tracking-[-0.3px] text-[var(--ink)]">{fmt(ownerCard.planned, "RUB")}</p>
+              </div>
+              <div className="rounded-[10px] bg-[var(--bg)] px-[10px] py-[9px]">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">В кассе</p>
+                <p className="text-[14px] font-bold tracking-[-0.3px] text-[var(--green)]">{fmt(ownerCard.actual, "RUB")}</p>
+              </div>
+              <div className="rounded-[10px] bg-[var(--bg)] px-[10px] py-[9px]">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">Дозаработать</p>
+                <p className="text-[14px] font-bold tracking-[-0.3px] text-[var(--amber)]">{fmt(remaining, "RUB")}</p>
+              </div>
+            </div>
+            <div className="mt-3 h-[3px] overflow-hidden rounded-[2px] bg-[var(--bg)]">
+              <div className="h-full rounded-[2px] bg-[var(--green)]" style={{ width: `${progress}%` }} />
+            </div>
+          </article>
+        );
+      })}
+
+      <section className="mb-3 rounded-[20px] bg-[var(--white)] px-5 py-[18px]">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Spent so far</p>
+            <BoldDigits
+              value={fmt(actualTotals.rub, "RUB")}
+              className="text-[32px] font-light leading-none tracking-[-1px] text-[var(--ink)]"
+            />
+            <p className="mt-1 text-[12px] text-[var(--ink3)]">{fmt(actualTotals.usd, "USD")}</p>
             <p className="mt-2 text-[12px] text-[var(--ink3)]">
-              {formatCompactCurrency(Math.abs(remainingRub), "RUB")} remaining of plan
+              {fmt(Math.abs(remainingRub), "RUB")} remaining of plan
             </p>
           </div>
 
@@ -243,14 +329,12 @@ export default function PlanFactPage() {
             <p className={cn("text-[28px] font-bold tracking-[-0.5px]", budgetUsedTone)}>
               {Math.max(0, Math.round(budgetUsed))}%
             </p>
-            <p className="mt-1 text-[12px] text-[var(--ink3)]">
-              of {formatCompactCurrency(plannedTotals.rub, "RUB")} plan
-            </p>
+            <p className="mt-1 text-[12px] text-[var(--ink3)]">of {fmt(plannedTotals.rub, "RUB")} plan</p>
           </div>
         </div>
       </section>
 
-      {hasTransactions ? (
+      {hasExpenseTransactions ? (
         <>
           <p className="mb-[10px] mt-5 px-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
             By category
@@ -264,7 +348,7 @@ export default function PlanFactPage() {
                   {card.label}
                 </p>
                 <span className={cn("shrink-0 rounded-[20px] px-[9px] py-1 text-[11px] font-semibold", card.badgeClassName)}>
-                  {formatSignedRubDiff(card.diffRub)}
+                  {card.badgeText}
                 </span>
               </div>
 
@@ -274,8 +358,8 @@ export default function PlanFactPage() {
                     Planned
                   </p>
                   <AmountPair
-                    primary={formatCompactCurrency(card.plannedRub, "RUB")}
-                    secondary={formatCompactCurrency(card.plannedUsd, "USD")}
+                    primary={fmt(card.plannedRub, "RUB")}
+                    secondary={fmt(card.plannedUsd, "USD")}
                     primaryClassName="text-[16px] font-bold tracking-[-0.4px] text-[var(--ink)]"
                   />
                 </div>
@@ -284,8 +368,8 @@ export default function PlanFactPage() {
                     Actual
                   </p>
                   <AmountPair
-                    primary={formatCompactCurrency(card.actualRub, "RUB")}
-                    secondary={formatCompactCurrency(card.actualUsd, "USD")}
+                    primary={fmt(card.actualRub, "RUB")}
+                    secondary={fmt(card.actualUsd, "USD")}
                     primaryClassName={card.actualPrimaryClassName}
                   />
                 </div>

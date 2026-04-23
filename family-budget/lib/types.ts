@@ -28,6 +28,8 @@ export interface Transaction {
   amount: number;
   currency: Currency;
   categoryId: string;
+  type: "expense" | "income";
+  owner?: IncomeOwner | null;
   date: string;
   note: string;
 }
