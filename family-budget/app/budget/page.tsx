@@ -435,7 +435,10 @@ export default function BudgetPage() {
         ))}
         <button
           type="button"
-          onClick={() => addIncome("me")}
+          onClick={() => {
+            console.log("[Budget] Add income clicked", { owner: "me" });
+            addIncome("me");
+          }}
           className="w-full border-t border-[0.5px] border-[var(--line)] bg-transparent px-4 py-3 text-left text-[13px] font-medium text-[var(--blue)]"
         >
           + Add income
@@ -502,7 +505,10 @@ export default function BudgetPage() {
         ))}
         <button
           type="button"
-          onClick={() => addIncome("milena")}
+          onClick={() => {
+            console.log("[Budget] Add income clicked", { owner: "milena" });
+            addIncome("milena");
+          }}
           className="w-full border-t border-[0.5px] border-[var(--line)] bg-transparent px-4 py-3 text-left text-[13px] font-medium text-[var(--blue)]"
         >
           + Add income
