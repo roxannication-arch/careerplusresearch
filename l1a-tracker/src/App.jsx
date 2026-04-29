@@ -694,7 +694,6 @@ function App() {
                     }))
                   }
                 />
-                <p className="budget-planned">План: {item.planned}</p>
                 <label className="spent-field">
                   Потрачено
                   <input

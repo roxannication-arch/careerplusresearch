@@ -266,12 +266,6 @@ h2 {
   font-weight: 700;
 }
 
-.budget-planned {
-  margin: 5px 0 9px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
 .spent-field {
   display: flex;
   flex-direction: column;
