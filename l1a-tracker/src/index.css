@@ -138,15 +138,9 @@ h1 {
 .utility-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
   padding: 8px;
-}
-
-.utility-note {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
 }
 
 .content-card {
@@ -240,18 +234,8 @@ h2 {
 }
 
 .stage-card.current {
-  border: 1px solid #94b0ee;
+  border: 1px solid var(--secondary);
   background: rgba(50, 73, 168, 0.06);
-}
-
-.stage-card.done {
-  border-color: rgba(29, 158, 117, 0.36);
-  background: rgba(29, 158, 117, 0.08);
-}
-
-.stage-card.pending {
-  border-color: rgba(197, 127, 23, 0.3);
-  background: var(--warning-soft);
 }
 
 .row {
@@ -386,27 +370,6 @@ h2 {
 .doc-title {
   font-size: 13px;
   line-height: 1.35;
-}
-
-.documents-list.compact .doc-section {
-  padding: 10px;
-}
-
-.documents-list.compact .item-list {
-  gap: 5px;
-  margin-top: 8px;
-}
-
-.documents-list.compact .item-list li {
-  padding-top: 6px;
-}
-
-.documents-list.compact .doc-title {
-  font-size: 12px;
-}
-
-.documents-list.compact .checkbox-row {
-  font-size: 12px;
 }
 
 .budget-title {

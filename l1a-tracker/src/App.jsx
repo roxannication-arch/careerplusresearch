@@ -13,7 +13,6 @@ const SECTION_ICON_BY_ID = {
 const createInitialState = () => ({
   activeTab: "stages",
   theme: "light",
-  documentsCompact: false,
   stages: [
     {
       id: "stage-1",
@@ -383,7 +382,6 @@ const normalizeState = (state) => {
     ...fallback,
     ...state,
     theme: state.theme === "dark" ? "dark" : "light",
-    documentsCompact: Boolean(state.documentsCompact),
     stages: Array.isArray(state.stages) ? state.stages : fallback.stages,
     documentSections: Array.isArray(state.documentSections)
       ? state.documentSections
@@ -666,13 +664,6 @@ function App() {
     }));
   };
 
-  const toggleDocumentsCompact = () => {
-    updateState((prev) => ({
-      ...prev,
-      documentsCompact: !prev.documentsCompact,
-    }));
-  };
-
   const tabs = [
     { id: "stages", label: "Этапы" },
     { id: "documents", label: "Документы" },
@@ -712,17 +703,6 @@ function App() {
           <button type="button" className="secondary-action" onClick={toggleTheme}>
             {appState.theme === "dark" ? "Светлая тема" : "Темная тема"}
           </button>
-          {appState.activeTab === "documents" ? (
-            <button
-              type="button"
-              className="secondary-action"
-              onClick={toggleDocumentsCompact}
-            >
-              {appState.documentsCompact ? "Обычный список" : "Компактный список"}
-            </button>
-          ) : (
-            <span className="utility-note">v3 дизайн</span>
-          )}
         </div>
       </div>
 
@@ -746,15 +726,11 @@ function App() {
             <span>{stagePercent}%</span>
           </div>
           <div className="list-grid">
-            {appState.stages.map((stage, index) => {
-                const stageState = stage.done
-                  ? "done"
-                  : stage.id === currentStageId
-                    ? "current"
-                    : "pending";
-
-                return (
-                  <article key={stage.id} className={`stage-card ${stageState}`}>
+            {appState.stages.map((stage, index) => (
+                  <article
+                    key={stage.id}
+                    className={`stage-card ${stage.id === currentStageId ? "current" : ""}`}
+                  >
                     <div className="row">
                       <label className="checkbox-row">
                         <input
@@ -832,8 +808,7 @@ function App() {
                       }
                     />
                   </article>
-                );
-              })}
+              ))}
           </div>
         </section>
       )}
@@ -858,7 +833,7 @@ function App() {
             <span>{documentsPercent}%</span>
           </div>
 
-          <div className={`documents-list ${appState.documentsCompact ? "compact" : ""}`}>
+          <div className="documents-list">
             {appState.documentSections.map((section) => {
               const sectionDone = section.items.filter((item) => item.done).length;
               const sectionPercent = calcPercent(sectionDone, section.items.length);
