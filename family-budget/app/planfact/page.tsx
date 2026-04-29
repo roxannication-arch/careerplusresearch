@@ -5,11 +5,24 @@ import { useMemo } from "react";
 
 import { useBudget } from "@/components/BudgetProvider";
 import { fmt, toRub, toUsd } from "@/lib/currency";
-import { parseIncomeCategoryId } from "@/lib/income";
+import { getActualIncome, getPlannedIncome } from "@/lib/storage";
 import { calculatePlannedExpenseTotals, calculateTransactionTotals } from "@/lib/summary";
 import { cn } from "@/lib/utils";
 
 type IconKind = "rent" | "groceries" | "transport" | "entertainment" | "phone";
+
+function formatRounded(value: number): string {
+  const normalized = Number.isFinite(value) ? value : 0;
+  return Math.round(normalized).toLocaleString("en-US");
+}
+
+function rub(value: number): string {
+  return `₽${formatRounded(value)}`;
+}
+
+function usd(value: number): string {
+  return `$${formatRounded(value)}`;
+}
 
 function BoldDigits({ value, className }: { value: string; className: string }) {
   return (
@@ -131,52 +144,38 @@ function AmountPair({
 }
 
 export default function PlanFactPage() {
-  const { monthData } = useBudget();
+  const { state, selectedMonth, monthData } = useBudget();
+  const rate = Number.isFinite(monthData.exchangeRate) && monthData.exchangeRate > 0 ? monthData.exchangeRate : 1;
+  const selectedMonthData = state.months[selectedMonth] ?? monthData;
 
-  const incomeTransactions = useMemo(
-    () => monthData.transactions.filter((transaction) => transaction.type === "income"),
-    [monthData.transactions],
+  const actualIncomeTotal = useMemo(
+    () => getActualIncome(state, selectedMonth, rate),
+    [rate, selectedMonth, state],
+  );
+  const plannedIncomeTotal = useMemo(
+    () => getPlannedIncome(state, selectedMonth, rate),
+    [rate, selectedMonth, state],
   );
 
-  const plannedIncomeByOwner = useMemo(() => {
-    return monthData.incomes.reduce(
-      (accumulator, income) => {
-        const amount = typeof income.amount === "number" && Number.isFinite(income.amount) ? income.amount : 0;
-        accumulator[income.owner] += toRub(amount, income.currency, monthData.exchangeRate);
-        return accumulator;
-      },
-      { me: 0, milena: 0 } as Record<"me" | "milena", number>,
-    );
-  }, [monthData.exchangeRate, monthData.incomes]);
+  const ownerIncome = useMemo(() => {
+    const plannedMe = selectedMonthData.incomes
+      .filter((income) => income.owner === "me")
+      .reduce((sum, income) => sum + (income.amount ?? 0) * (income.currency === "USD" ? rate : 1), 0);
 
-  const actualIncomeByOwner = useMemo(() => {
-    const getActualBySource = (source: "Roksana" | "Milena"): number =>
-      incomeTransactions
-        .filter((transaction) => {
-          if (transaction.source) {
-            return transaction.source === source;
-          }
-          const parsed = parseIncomeCategoryId(transaction.categoryId);
-          if (parsed.owner === "me") {
-            return source === "Roksana";
-          }
-          if (parsed.owner === "milena") {
-            return source === "Milena";
-          }
-          return false;
-        })
-        .reduce(
-          (sum, transaction) => sum + toRub(transaction.amount, transaction.currency, monthData.exchangeRate),
-          0,
-        );
-    return {
-      me: getActualBySource("Roksana"),
-      milena: getActualBySource("Milena"),
-    };
-  }, [incomeTransactions, monthData.exchangeRate]);
+    const actualMe = selectedMonthData.transactions
+      .filter((transaction) => transaction.type === "income" && transaction.owner === "me")
+      .reduce((sum, transaction) => sum + transaction.amount * (transaction.currency === "USD" ? rate : 1), 0);
 
-  const plannedIncomeTotal = plannedIncomeByOwner.me + plannedIncomeByOwner.milena;
-  const actualIncomeTotal = actualIncomeByOwner.me + actualIncomeByOwner.milena;
+    const plannedMilena = selectedMonthData.incomes
+      .filter((income) => income.owner === "milena")
+      .reduce((sum, income) => sum + (income.amount ?? 0) * (income.currency === "USD" ? rate : 1), 0);
+
+    const actualMilena = selectedMonthData.transactions
+      .filter((transaction) => transaction.type === "income" && transaction.owner === "milena")
+      .reduce((sum, transaction) => sum + transaction.amount * (transaction.currency === "USD" ? rate : 1), 0);
+
+    return { plannedMe, actualMe, plannedMilena, actualMilena };
+  }, [rate, selectedMonthData.incomes, selectedMonthData.transactions]);
 
   const plannedTotals = useMemo(() => calculatePlannedExpenseTotals(monthData), [monthData]);
   const actualTotals = useMemo(() => calculateTransactionTotals(monthData), [monthData]);
@@ -256,86 +255,89 @@ export default function PlanFactPage() {
   );
 
   const incomeOwnerCards = [
-    { key: "me" as const, label: "Roksana", planned: plannedIncomeByOwner.me, actual: actualIncomeByOwner.me },
-    { key: "milena" as const, label: "Milena", planned: plannedIncomeByOwner.milena, actual: actualIncomeByOwner.milena },
+    { key: "me" as const, label: "Roksana", planned: ownerIncome.plannedMe, actual: ownerIncome.actualMe },
+    {
+      key: "milena" as const,
+      label: "Milena",
+      planned: ownerIncome.plannedMilena,
+      actual: ownerIncome.actualMilena,
+    },
   ];
   const hasExpenseTransactions = monthData.transactions.some((transaction) => transaction.type === "expense");
 
   return (
     <div className="-mx-4 -mt-6 bg-[var(--bg)] px-4 pt-6 pb-4">
-      <section className="mb-3 rounded-2xl bg-[var(--white)] p-4">
+      <section className="mb-3 rounded-[16px] bg-[var(--white)] p-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-[11px] text-[#AEAEB2]">Total earned</p>
-            <p className="mt-1 text-[17px] font-semibold text-[var(--ink)]">{fmt(actualIncomeTotal, "RUB")}</p>
-            <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{fmt(toUsd(actualIncomeTotal, "RUB", monthData.exchangeRate), "USD")}</p>
+            <p className="text-[11px] text-[#AEAEB2]">Earned</p>
+            <p className="mt-1 text-[17px] font-semibold text-[var(--ink)]">{rub(actualIncomeTotal)}</p>
+            <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{usd(actualIncomeTotal / rate)}</p>
           </div>
           <div className="text-right">
             <p className="text-[11px] text-[#AEAEB2]">Planned</p>
-            <p className="mt-1 text-[17px] font-semibold text-[var(--ink)]">{fmt(plannedIncomeTotal, "RUB")}</p>
-            <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{fmt(toUsd(plannedIncomeTotal, "RUB", monthData.exchangeRate), "USD")}</p>
+            <p className="mt-1 text-[17px] font-semibold text-[var(--ink)]">{rub(plannedIncomeTotal)}</p>
+            <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{usd(plannedIncomeTotal / rate)}</p>
           </div>
         </div>
-        <p className={cn("mt-3 text-[12px]", actualIncomeTotal >= plannedIncomeTotal ? "text-[var(--green)]" : "text-[#AEAEB2]")}>
-          {actualIncomeTotal >= plannedIncomeTotal
-            ? "Goal reached ✓"
-            : `${fmt(Math.max(plannedIncomeTotal - actualIncomeTotal, 0), "RUB")} still to earn`}
-        </p>
+        {actualIncomeTotal < plannedIncomeTotal ? (
+          <p className="mt-3 text-[12px] text-[#AEAEB2]">
+            {rub(plannedIncomeTotal - actualIncomeTotal)} still to earn
+          </p>
+        ) : (
+          <p className="mt-3 text-[12px] text-[#1A9A44]">Goal reached ✓</p>
+        )}
       </section>
 
       {incomeOwnerCards.map((ownerCard) => {
-        const diff = ownerCard.actual - ownerCard.planned;
         const remaining = Math.max(ownerCard.planned - ownerCard.actual, 0);
         const progress = ownerCard.planned > 0 ? Math.min((ownerCard.actual / ownerCard.planned) * 100, 100) : 0;
-        const progressColor = progress >= 80 ? "var(--green)" : progress >= 50 ? "var(--amber)" : "var(--red)";
-        const earnedClass = ownerCard.actual < ownerCard.planned ? "text-[var(--red)]" : "text-[var(--green)]";
+        const progressColor = progress >= 80 ? "#1A9A44" : progress >= 50 ? "#B8730A" : "#C7372F";
+        const earnedClass = ownerCard.actual >= ownerCard.planned ? "text-[#1A9A44]" : "text-[#C7372F]";
         const badgeClass =
-          diff > 0
-            ? "bg-[var(--green-bg)] text-[var(--green)]"
-            : diff < 0
-              ? "bg-[var(--red-bg)] text-[var(--red)]"
-              : "bg-[var(--bg)] text-[var(--ink3)]";
+          ownerCard.actual > ownerCard.planned
+            ? "bg-[#F0FAF4] text-[#1A9A44]"
+            : ownerCard.actual < ownerCard.planned
+              ? "bg-[#FFF0EF] text-[#C7372F]"
+              : "bg-[#F5F5F7] text-[#8E8E93]";
         const badgeText =
-          diff > 0
-            ? `${fmt(diff, "RUB")} ahead`
-            : diff < 0
-              ? `${fmt(Math.abs(diff), "RUB")} behind`
+          ownerCard.actual > ownerCard.planned
+            ? `+₽${formatRounded(ownerCard.actual - ownerCard.planned)}`
+            : ownerCard.actual < ownerCard.planned
+              ? `−₽${formatRounded(ownerCard.planned - ownerCard.actual)}`
               : "On track";
 
         return (
-          <article key={ownerCard.key} className="mb-[10px] rounded-2xl bg-[var(--white)] p-4">
-            <div className="mb-[14px] flex items-center justify-between">
+          <article key={ownerCard.key} className="mb-[10px] rounded-[16px] bg-[var(--white)] p-4">
+            <div className="flex items-center justify-between">
               <p className="text-[15px] font-semibold tracking-[-0.3px] text-[var(--ink)]">{ownerCard.label}</p>
               <span className={cn("rounded-[20px] px-[9px] py-1 text-[11px] font-semibold", badgeClass)}>
                 {badgeText}
               </span>
             </div>
 
-            <div className="mb-3 grid grid-cols-2 gap-2">
+            <div className="mb-3 mt-3 grid grid-cols-2 gap-2">
               <div className="rounded-[10px] bg-[#F5F5F7] px-[13px] py-[11px]">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#AEAEB2]">PLANNED</p>
-                <p className="text-[16px] font-bold tracking-[-0.4px] text-[var(--ink)]">{fmt(ownerCard.planned, "RUB")}</p>
-                <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{fmt(toUsd(ownerCard.planned, "RUB", monthData.exchangeRate), "USD")}</p>
+                <p className="text-[16px] font-bold tracking-[-0.4px] text-[#1D1D1F]">{rub(ownerCard.planned)}</p>
+                <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{usd(ownerCard.planned / rate)}</p>
               </div>
               <div className="rounded-[10px] bg-[#F5F5F7] px-[13px] py-[11px]">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#AEAEB2]">EARNED</p>
-                <p className={cn("text-[16px] font-bold tracking-[-0.4px]", earnedClass)}>{fmt(ownerCard.actual, "RUB")}</p>
-                <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{fmt(toUsd(ownerCard.actual, "RUB", monthData.exchangeRate), "USD")}</p>
+                <p className={cn("text-[16px] font-bold tracking-[-0.4px]", earnedClass)}>{rub(ownerCard.actual)}</p>
+                <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{usd(ownerCard.actual / rate)}</p>
               </div>
             </div>
 
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-[11px] text-[#AEAEB2]">Still to earn:</p>
-              {ownerCard.actual >= ownerCard.planned ? (
-                <p className="text-[11px] font-semibold text-[var(--green)]">Done ✓</p>
-              ) : (
-                <p className="text-[11px] font-semibold text-[var(--ink)]">
-                  {fmt(remaining, "RUB")} ({fmt(toUsd(remaining, "RUB", monthData.exchangeRate), "USD")})
-                </p>
-              )}
-            </div>
+            {ownerCard.actual >= ownerCard.planned ? (
+              <p className="text-[11px] text-[#1A9A44]">Done ✓</p>
+            ) : (
+              <p className="text-[11px] text-[#AEAEB2]">
+                Still to earn: {rub(remaining)} ({usd(remaining / rate)})
+              </p>
+            )}
 
-            <div className="mt-3 h-[3px] overflow-hidden rounded-[2px] bg-[var(--bg)]">
+            <div className="mt-3 h-[3px] overflow-hidden rounded-[2px] bg-[#F5F5F7]">
               <div className="h-full rounded-[2px]" style={{ width: `${progress}%`, backgroundColor: progressColor }} />
             </div>
           </article>
@@ -379,7 +381,12 @@ export default function PlanFactPage() {
                 <p className="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-[-0.3px] text-[var(--ink)]">
                   {card.label}
                 </p>
-                <span className={cn("shrink-0 rounded-[20px] px-[9px] py-1 text-[11px] font-semibold", card.badgeClassName)}>
+                <span
+                  className={cn(
+                    "shrink-0 rounded-[20px] px-[9px] py-1 text-[11px] font-semibold",
+                    card.badgeClassName,
+                  )}
+                >
                   {card.badgeText}
                 </span>
               </div>

@@ -391,6 +391,9 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       if (!input.categoryId.trim()) {
         return;
       }
+      if (input.type === "income" && input.owner !== "me" && input.owner !== "milena") {
+        return;
+      }
 
       updateCurrentMonth((month) => ({
         ...month,

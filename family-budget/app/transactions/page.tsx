@@ -144,8 +144,7 @@ export default function TransactionsPage() {
   const [note, setNote] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [categoryId, setCategoryId] = useState(monthData.expenses[0]?.id ?? "");
-  const [incomeSource, setIncomeSource] = useState<"Roksana" | "Milena" | "Other">("Roksana");
-  const [incomeOwner, setIncomeOwner] = useState<"me" | "milena">("me");
+  const [incomeSource, setIncomeSource] = useState<"Roksana" | "Milena">("Roksana");
   const filterContainerRef = useRef<HTMLDivElement | null>(null);
 
   const categoryLabelMap = new Map(
@@ -537,7 +536,7 @@ export default function TransactionsPage() {
                     Source
                   </p>
                   <div className="flex items-center gap-2">
-                    {(["Roksana", "Milena", "Other"] as const).map((source) => {
+                    {(["Roksana", "Milena"] as const).map((source) => {
                       const active = incomeSource === source;
                       return (
                         <button
@@ -545,7 +544,6 @@ export default function TransactionsPage() {
                           type="button"
                           onClick={() => {
                             setIncomeSource(source);
-                            setIncomeOwner(source === "Milena" ? "milena" : "me");
                           }}
                           className={cn(
                             "rounded-[10px] px-4 py-2 text-[13px] transition-colors",
@@ -597,9 +595,7 @@ export default function TransactionsPage() {
                 if (entryType === "expense" && !activeCategoryId) {
                   return;
                 }
-                if (entryType === "income" && !incomeSource) {
-                  return;
-                }
+                const incomeOwner = incomeSource === "Milena" ? "milena" : "me";
 
                 const payload = {
                   amount: parsed,
@@ -610,6 +606,7 @@ export default function TransactionsPage() {
                       : activeCategoryId,
                   type: entryType,
                   source: entryType === "income" ? incomeSource : undefined,
+                  owner: entryType === "income" ? incomeOwner : null,
                   date,
                   note,
                 } as const;
