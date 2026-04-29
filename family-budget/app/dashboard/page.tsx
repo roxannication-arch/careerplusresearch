@@ -5,10 +5,12 @@ import { useMemo } from "react";
 
 import { toRub, toUsd } from "@/lib/currency";
 import {
-  calculateIncomeTotals,
-  calculatePlannedExpenseTotals,
-  calculatePocketTotals,
-} from "@/lib/summary";
+  getActualIncome,
+  getActualSpent,
+  getPlannedExpenses,
+  getPlannedIncome,
+  getPocketContributions,
+} from "@/lib/storage";
 import { Currency } from "@/lib/types";
 import { useBudget } from "@/components/BudgetProvider";
 import { cn } from "@/lib/utils";
@@ -173,33 +175,35 @@ function formatDateTime(dateValue: string): string {
 }
 
 export default function DashboardPage() {
-  const { monthData } = useBudget();
-  const income = useMemo(() => calculateIncomeTotals(monthData), [monthData]);
-  const spent = useMemo(
-    () =>
-      monthData.transactions.reduce(
-        (accumulator, transaction) => ({
-          rub: accumulator.rub + toRub(transaction.amount, transaction.currency, monthData.exchangeRate),
-          usd: accumulator.usd + toUsd(transaction.amount, transaction.currency, monthData.exchangeRate),
-        }),
-        { rub: 0, usd: 0 },
-      ),
-    [monthData.exchangeRate, monthData.transactions],
+  const { state, selectedMonth, monthData } = useBudget();
+  const rate = monthData.exchangeRate;
+  const totalIncome = useMemo(
+    () => getActualIncome(state, selectedMonth, rate),
+    [rate, selectedMonth, state],
   );
-  const plannedExpenses = useMemo(() => calculatePlannedExpenseTotals(monthData), [monthData]);
-  const pockets = useMemo(() => calculatePocketTotals(monthData), [monthData]);
+  const plannedIncome = useMemo(
+    () => getPlannedIncome(state, selectedMonth, rate),
+    [rate, selectedMonth, state],
+  );
+  const actualSpent = useMemo(
+    () => getActualSpent(state, selectedMonth, rate),
+    [rate, selectedMonth, state],
+  );
+  const totalPlanned = useMemo(
+    () => getPlannedExpenses(state, selectedMonth, rate),
+    [rate, selectedMonth, state],
+  );
+  const pocketTotal = useMemo(
+    () => getPocketContributions(state, selectedMonth, rate),
+    [rate, selectedMonth, state],
+  );
   const available = useMemo(
     () => ({
-      rub: income.rub - spent.rub - pockets.rub,
-      usd: income.usd - spent.usd - pockets.usd,
+      rub: totalIncome - actualSpent - pocketTotal,
+      usd: toUsd(totalIncome - actualSpent - pocketTotal, "RUB", rate),
     }),
-    [income, spent, pockets],
+    [actualSpent, pocketTotal, rate, totalIncome],
   );
-  const totalIncome = income.rub;
-  const actualSpent = spent.rub;
-  const totalPlanned = plannedExpenses.rub;
-  const pocketTotal = pockets.rub;
-  const rate = monthData.exchangeRate;
 
   const categoryNameById = useMemo(
     () =>
@@ -256,6 +260,9 @@ export default function DashboardPage() {
             </div>
             <div style={{ fontSize: "11px", color: "#AEAEB2", marginTop: "2px" }}>
               {(totalIncome / rate).toLocaleString("en-US", { maximumFractionDigits: 0 })} $
+            </div>
+            <div style={{ fontSize: "10px", color: "#AEAEB2", marginTop: "3px", whiteSpace: "nowrap" }}>
+              of {plannedIncome.toLocaleString("en-US", { maximumFractionDigits: 0 })} ₽ planned
             </div>
           </div>
 
