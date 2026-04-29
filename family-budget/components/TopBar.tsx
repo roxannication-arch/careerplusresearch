@@ -9,9 +9,10 @@ import { getMonthLabel } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
 const navTabs = [
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/budget", label: "Plan" },
   { href: "/transactions", label: "Actual" },
-  { href: "/planfact", label: "Plan-Fact" },
+  { href: "/planfact", label: "Compare" },
   { href: "/pockets", label: "Pockets" },
 ];
 
