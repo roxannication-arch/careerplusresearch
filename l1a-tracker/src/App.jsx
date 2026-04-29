@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 
 const STORAGE_KEY = "l1a-tracker-state-v1";
+const SECTION_ICON_BY_ID = {
+  "docs-ru-ooo": "office",
+  "docs-us-llc": "hq",
+  "docs-affiliation": "link",
+  "docs-petition": "petition",
+  "docs-personal": "profile",
+  "docs-consulate": "consulate",
+};
 
 const createInitialState = () => ({
   activeTab: "stages",
@@ -411,6 +419,83 @@ const EditableText = ({ value, onSave, className }) => {
   );
 };
 
+const SectionIcon = ({ type }) => {
+  const commonProps = {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.8",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": "true",
+  };
+
+  if (type === "office") {
+    return (
+      <svg {...commonProps}>
+        <path d="M4 20h16" />
+        <path d="M6 20V8l6-4 6 4v12" />
+        <path d="M10 20v-4h4v4" />
+        <path d="M9 10h.01M15 10h.01M9 13h.01M15 13h.01" />
+      </svg>
+    );
+  }
+
+  if (type === "hq") {
+    return (
+      <svg {...commonProps}>
+        <rect x="4" y="4" width="16" height="16" rx="2" />
+        <path d="M8 8h8M8 12h8M8 16h5" />
+      </svg>
+    );
+  }
+
+  if (type === "link") {
+    return (
+      <svg {...commonProps}>
+        <path d="M10 13a3 3 0 0 1 0-4l2-2a3 3 0 1 1 4 4l-1 1" />
+        <path d="M14 11a3 3 0 0 1 0 4l-2 2a3 3 0 1 1-4-4l1-1" />
+      </svg>
+    );
+  }
+
+  if (type === "profile") {
+    return (
+      <svg {...commonProps}>
+        <circle cx="12" cy="8" r="3.3" />
+        <path d="M5 20a7 7 0 0 1 14 0" />
+      </svg>
+    );
+  }
+
+  if (type === "consulate") {
+    return (
+      <svg {...commonProps}>
+        <path d="M3 10h18" />
+        <path d="M5 10v8M9 10v8M15 10v8M19 10v8" />
+        <path d="M4 20h16" />
+        <path d="M12 4 3 8h18z" />
+      </svg>
+    );
+  }
+
+  if (type === "petition") {
+    return (
+      <svg {...commonProps}>
+        <path d="M7 4h7l4 4v12H7z" />
+        <path d="M14 4v4h4" />
+        <path d="M10 13h6M10 17h6M10 9h2" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg {...commonProps}>
+      <path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+    </svg>
+  );
+};
+
 function App() {
   const [appState, setAppState] = useState(() => {
     const storedState = localStorage.getItem(STORAGE_KEY);
@@ -433,9 +518,7 @@ function App() {
   const stageDoneCount = appState.stages.filter((stage) => stage.done).length;
   const stagePercent = calcPercent(stageDoneCount, appState.stages.length);
 
-  const currentStageId =
-    appState.stages.find((stage) => !stage.done)?.id ||
-    appState.stages[appState.stages.length - 1]?.id;
+  const currentStageId = appState.stages.find((stage) => !stage.done)?.id || null;
 
   const allDocuments = useMemo(
     () => appState.documentSections.flatMap((section) => section.items),
@@ -511,6 +594,27 @@ function App() {
     }));
   };
 
+  const addSection = () => {
+    updateState((prev) => ({
+      ...prev,
+      documentSections: [
+        ...prev.documentSections,
+        {
+          id: generateId("section"),
+          title: "Новая секция",
+          items: [],
+        },
+      ],
+    }));
+  };
+
+  const removeSection = (sectionId) => {
+    updateState((prev) => ({
+      ...prev,
+      documentSections: prev.documentSections.filter((section) => section.id !== sectionId),
+    }));
+  };
+
   const tabs = [
     { id: "stages", label: "Этапы" },
     { id: "documents", label: "Документы" },
@@ -555,7 +659,7 @@ function App() {
               </p>
             </div>
             <button type="button" className="secondary-action" onClick={addStage}>
-              + Добавить этап
+              + Этап
             </button>
           </div>
           <div className="progress-wrap">
@@ -566,9 +670,17 @@ function App() {
           </div>
           <div className="list-grid">
             {appState.stages.map((stage, index) => (
+              (() => {
+                const stageState = stage.done
+                  ? "done"
+                  : stage.id === currentStageId
+                    ? "current"
+                    : "pending";
+
+                return (
               <article
                 key={stage.id}
-                className={`stage-card ${stage.id === currentStageId ? "current" : ""}`}
+                className={`stage-card ${stageState}`}
               >
                 <div className="row">
                   <label className="checkbox-row">
@@ -592,7 +704,10 @@ function App() {
                     <span>Этап {index + 1}</span>
                   </label>
                   <div className="row-actions">
-                    {stage.id === currentStageId && <span className="badge">Текущий</span>}
+                    {stage.done && <span className="badge done">Готово</span>}
+                    {!stage.done && stage.id === currentStageId && (
+                      <span className="badge current">Текущий</span>
+                    )}
                     <button
                       type="button"
                       className="danger-icon-button"
@@ -642,6 +757,8 @@ function App() {
                   }
                 />
               </article>
+                );
+              })()
             ))}
           </div>
         </section>
@@ -656,6 +773,9 @@ function App() {
                 Готово: {documentsDoneCount}/{allDocuments.length}
               </p>
             </div>
+            <button type="button" className="secondary-action" onClick={addSection}>
+              + Секция
+            </button>
           </div>
           <div className="progress-wrap">
             <div className="progress-track">
@@ -673,31 +793,47 @@ function App() {
                 <article className="doc-section" key={section.id}>
                   <div className="section-head">
                     <div className="section-head-main">
-                      <EditableText
-                        value={section.title}
-                        className="section-title"
-                        onSave={(nextValue) =>
-                          updateState((prev) => ({
-                            ...prev,
-                            documentSections: prev.documentSections.map((entry) =>
-                              entry.id === section.id
-                                ? { ...entry, title: nextValue }
-                                : entry,
-                            ),
-                          }))
-                        }
-                      />
+                      <div className="section-title-wrap">
+                        <span className="section-icon">
+                          <SectionIcon
+                            type={SECTION_ICON_BY_ID[section.id] || section.icon || "petition"}
+                          />
+                        </span>
+                        <EditableText
+                          value={section.title}
+                          className="section-title"
+                          onSave={(nextValue) =>
+                            updateState((prev) => ({
+                              ...prev,
+                              documentSections: prev.documentSections.map((entry) =>
+                                entry.id === section.id
+                                  ? { ...entry, title: nextValue }
+                                  : entry,
+                              ),
+                            }))
+                          }
+                        />
+                      </div>
                       <p>
                         {sectionDone}/{section.items.length}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      className="secondary-action small"
-                      onClick={() => addDocument(section.id)}
-                    >
-                      + Документ
-                    </button>
+                    <div className="row-actions">
+                      <button
+                        type="button"
+                        className="secondary-action small"
+                        onClick={() => addDocument(section.id)}
+                      >
+                        + Документ
+                      </button>
+                      <button
+                        type="button"
+                        className="danger-icon-button"
+                        onClick={() => removeSection(section.id)}
+                      >
+                        Удалить секцию
+                      </button>
+                    </div>
                   </div>
 
                   <div className="progress-wrap compact">
