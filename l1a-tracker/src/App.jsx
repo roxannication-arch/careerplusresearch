@@ -523,7 +523,7 @@ function App() {
         <p className="eyebrow">L-1A visa tracker</p>
         <h1>L-1A трекер</h1>
         <p className="subtitle">
-          Чек-лист этапов, документов и бюджета с автосохранением в localStorage.
+          Чек-лист этапов, документов и бюджета для контроля L-1A процесса.
         </p>
       </header>
 
