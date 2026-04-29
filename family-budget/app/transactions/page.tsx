@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useBudget } from "@/components/BudgetProvider";
 import { convertCurrency, toRub, toUsd } from "@/lib/currency";
-import { encodeIncomeCategoryId } from "@/lib/income";
+import { encodeIncomeCategoryId, parseIncomeCategoryId } from "@/lib/income";
 import { Currency } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -130,12 +130,16 @@ export default function TransactionsPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [entryType, setEntryType] = useState<"expense" | "income">("expense");
+  const [transactionTypeFilter, setTransactionTypeFilter] = useState<"all" | "expense" | "income">("all");
 
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
   const [draftCategoryFilter, setDraftCategoryFilter] = useState("all");
+  const [draftTransactionTypeFilter, setDraftTransactionTypeFilter] = useState<"all" | "expense" | "income">(
+    "all",
+  );
   const [draftDateFrom, setDraftDateFrom] = useState("");
   const [draftDateTo, setDraftDateTo] = useState("");
 
@@ -171,7 +175,8 @@ export default function TransactionsPage() {
         ).replace("−", "")
     : null;
 
-  const hasActiveFilters = categoryFilter !== "all" || Boolean(dateFrom) || Boolean(dateTo);
+  const hasActiveFilters =
+    transactionTypeFilter !== "all" || categoryFilter !== "all" || Boolean(dateFrom) || Boolean(dateTo);
 
   useEffect(() => {
     if (!isFilterOpen) {
@@ -200,10 +205,14 @@ export default function TransactionsPage() {
   const filteredTransactions = useMemo(
     () =>
       monthData.transactions.filter((transaction) => {
-        if (transaction.type !== "expense") {
+        if (transactionTypeFilter !== "all" && transaction.type !== transactionTypeFilter) {
           return false;
         }
-        if (categoryFilter !== "all" && transaction.categoryId !== categoryFilter) {
+        if (
+          categoryFilter !== "all" &&
+          transaction.type === "expense" &&
+          transaction.categoryId !== categoryFilter
+        ) {
           return false;
         }
         if (dateFrom && transaction.date < dateFrom) {
@@ -214,7 +223,7 @@ export default function TransactionsPage() {
         }
         return true;
       }),
-    [categoryFilter, dateFrom, dateTo, monthData.transactions],
+    [categoryFilter, dateFrom, dateTo, monthData.transactions, transactionTypeFilter],
   );
 
   const groupedTransactions = useMemo(() => {
@@ -243,6 +252,7 @@ export default function TransactionsPage() {
               return;
             }
             setDraftCategoryFilter(categoryFilter);
+            setDraftTransactionTypeFilter(transactionTypeFilter);
             setDraftDateFrom(dateFrom);
             setDraftDateTo(dateTo);
             setIsFilterOpen(true);
@@ -269,6 +279,23 @@ export default function TransactionsPage() {
             isFilterOpen ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-2 opacity-0",
           )}
         >
+          <div className="mb-3">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+              Type
+            </p>
+            <select
+              value={draftTransactionTypeFilter}
+              onChange={(event) =>
+                setDraftTransactionTypeFilter(event.target.value as "all" | "expense" | "income")
+              }
+              className="w-full rounded-[8px] border-0 bg-[var(--bg)] px-[10px] py-[10px] text-[13px] text-[var(--ink)] outline-none"
+            >
+              <option value="all">All transactions</option>
+              <option value="expense">Expenses</option>
+              <option value="income">Income</option>
+            </select>
+          </div>
+
           <div className="mb-3">
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
               Category
@@ -315,6 +342,7 @@ export default function TransactionsPage() {
           <button
             type="button"
             onClick={() => {
+              setTransactionTypeFilter(draftTransactionTypeFilter);
               setCategoryFilter(draftCategoryFilter);
               setDateFrom(draftDateFrom);
               setDateTo(draftDateTo);
@@ -328,9 +356,11 @@ export default function TransactionsPage() {
           <button
             type="button"
             onClick={() => {
+              setTransactionTypeFilter("all");
               setCategoryFilter("all");
               setDateFrom("");
               setDateTo("");
+              setDraftTransactionTypeFilter("all");
               setDraftCategoryFilter("all");
               setDraftDateFrom("");
               setDraftDateTo("");
@@ -344,7 +374,7 @@ export default function TransactionsPage() {
 
       {groupedTransactions.length === 0 ? (
         <div className="rounded-2xl bg-[var(--white)] px-4 py-4 text-[13px] text-[var(--ink3)]">
-          No expenses yet.
+          No transactions yet.
         </div>
       ) : (
         groupedTransactions.map((group, groupIndex) => (
@@ -359,9 +389,17 @@ export default function TransactionsPage() {
             </p>
             <div className="overflow-hidden rounded-2xl bg-[var(--white)]">
               {group.transactions.map((transaction, index) => {
-                const categoryName =
-                  categoryLabelMap.get(transaction.categoryId) ?? "Без категории";
-                const kind = detectExpenseKind(categoryName);
+                const isIncome = transaction.type === "income";
+                const incomeMeta = isIncome ? parseIncomeCategoryId(transaction.categoryId) : null;
+                const ownerLabel = transaction.owner === "milena" ? "Milena" : "Roksana";
+                const categoryName = categoryLabelMap.get(transaction.categoryId) ?? "No category";
+                const title = isIncome
+                  ? transaction.source?.trim() || incomeMeta?.source || ownerLabel
+                  : categoryName;
+                const subtitle = isIncome
+                  ? `${ownerLabel}${transaction.note.trim() ? ` • ${transaction.note.trim()}` : ""}`
+                  : transaction.note.trim() || "No note";
+                const kind = isIncome ? "groceries" : detectExpenseKind(categoryName);
                 const converted =
                   transaction.currency === "USD"
                     ? toRub(transaction.amount, "USD", monthData.exchangeRate)
@@ -378,19 +416,24 @@ export default function TransactionsPage() {
                     <IconWrap kind={kind} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[14px] font-medium tracking-[-0.2px] text-[var(--ink)]">
-                        {categoryName}
+                        {title}
                       </p>
                       <p className="mt-[1px] truncate text-[11px] text-[var(--ink3)]">
-                        {transaction.note.trim() || "No note"}
+                        {subtitle}
                       </p>
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className="text-[14px] font-semibold tracking-[-0.3px] text-[var(--red)]">
-                        {formatSignedAmount(-Math.abs(transaction.amount), transaction.currency)}
+                      <p
+                        className={cn(
+                          "text-[14px] font-semibold tracking-[-0.3px]",
+                          isIncome ? "text-[var(--green)]" : "text-[var(--red)]",
+                        )}
+                      >
+                        {formatSignedAmount(isIncome ? Math.abs(transaction.amount) : -Math.abs(transaction.amount), transaction.currency)}
                       </p>
                       <p className="mt-0.5 text-[11px] text-[var(--ink3)]">
                         {formatSignedAmount(
-                          -Math.abs(converted),
+                          isIncome ? Math.abs(converted) : -Math.abs(converted),
                           transaction.currency === "USD" ? "RUB" : "USD",
                         )}
                       </p>
@@ -409,13 +452,12 @@ export default function TransactionsPage() {
       <button
         type="button"
         onClick={() => {
-          setEntryType("expense");
           setIsSheetOpen(true);
         }}
         className="fixed right-[18px] bottom-[92px] z-[110] inline-flex items-center gap-[7px] rounded-[50px] border-0 bg-[var(--blue)] px-5 py-[13px] text-[13px] font-semibold tracking-[-0.2px] text-white shadow-[0_4px_20px_rgba(0,113,227,0.30)]"
       >
         <span aria-hidden="true">+</span>
-        Add expense
+        Add transaction
       </button>
 
       {isSheetOpen ? (
@@ -428,9 +470,7 @@ export default function TransactionsPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mx-auto mb-5 h-1 w-9 rounded-[2px] bg-[var(--line2)]" />
-            <h2 className="mb-5 text-[17px] font-semibold tracking-[-0.4px] text-[var(--ink)]">
-              {entryType === "income" ? "New income" : "New expense"}
-            </h2>
+            <h2 className="mb-5 text-[17px] font-semibold tracking-[-0.4px] text-[var(--ink)]">New transaction</h2>
 
             <div className="mb-[14px]">
               <div className="flex items-center gap-2">
@@ -624,7 +664,7 @@ export default function TransactionsPage() {
               }}
               className="mt-2 w-full rounded-xl bg-[var(--blue)] px-4 py-[14px] text-[15px] font-semibold text-white"
             >
-              {entryType === "income" ? "Add income" : "Save expense"}
+              Save transaction
             </button>
           </div>
         </div>

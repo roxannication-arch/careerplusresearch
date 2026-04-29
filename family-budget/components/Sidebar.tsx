@@ -4,10 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { href: "/dashboard", label: "Overview" },
   { href: "/budget", label: "Plan" },
-  { href: "/planfact", label: "Actual" },
-  { href: "/transactions", label: "Spending" },
+  { href: "/transactions", label: "Actual" },
+  { href: "/planfact", label: "Plan-Fact" },
   { href: "/pockets", label: "Pockets" },
 ];
 
@@ -16,7 +15,7 @@ export function Sidebar() {
 
   return (
     <nav className="fixed right-1/2 bottom-0 z-[100] w-full max-w-[480px] translate-x-1/2 border-t border-[0.5px] border-[var(--line2)] bg-[rgba(255,255,255,0.92)] py-[10px] [backdrop-filter:saturate(180%)_blur(20px)]">
-      <div className="grid grid-cols-5">
+      <div className="grid grid-cols-4">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const color = isActive ? "var(--blue)" : "var(--ink3)";
