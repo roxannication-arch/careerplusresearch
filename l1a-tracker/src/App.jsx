@@ -359,6 +359,9 @@ const calcPercent = (done, total) => {
   return Math.round((done / total) * 100);
 };
 
+const generateId = (prefix) =>
+  `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
 const EditableText = ({ value, onSave, className }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -450,6 +453,64 @@ function App() {
     setAppState((prev) => updater(prev));
   };
 
+  const addStage = () => {
+    updateState((prev) => ({
+      ...prev,
+      stages: [
+        ...prev.stages,
+        {
+          id: generateId("stage"),
+          title: "Новый этап",
+          details: "Описание этапа",
+          timeline: "Срок",
+          done: false,
+        },
+      ],
+    }));
+  };
+
+  const removeStage = (stageId) => {
+    updateState((prev) => ({
+      ...prev,
+      stages: prev.stages.filter((stage) => stage.id !== stageId),
+    }));
+  };
+
+  const addDocument = (sectionId) => {
+    updateState((prev) => ({
+      ...prev,
+      documentSections: prev.documentSections.map((section) =>
+        section.id === sectionId
+          ? {
+              ...section,
+              items: [
+                ...section.items,
+                {
+                  id: generateId("doc"),
+                  title: "Новый документ",
+                  done: false,
+                },
+              ],
+            }
+          : section,
+      ),
+    }));
+  };
+
+  const removeDocument = (sectionId, documentId) => {
+    updateState((prev) => ({
+      ...prev,
+      documentSections: prev.documentSections.map((section) =>
+        section.id === sectionId
+          ? {
+              ...section,
+              items: section.items.filter((item) => item.id !== documentId),
+            }
+          : section,
+      ),
+    }));
+  };
+
   const tabs = [
     { id: "stages", label: "Этапы" },
     { id: "documents", label: "Документы" },
@@ -487,10 +548,15 @@ function App() {
       {appState.activeTab === "stages" && (
         <section className="card content-card">
           <div className="section-head">
-            <h2>Этапы процесса</h2>
-            <p>
-              Завершено: {stageDoneCount}/{appState.stages.length}
-            </p>
+            <div className="section-head-main">
+              <h2>Этапы процесса</h2>
+              <p>
+                Завершено: {stageDoneCount}/{appState.stages.length}
+              </p>
+            </div>
+            <button type="button" className="secondary-action" onClick={addStage}>
+              + Добавить этап
+            </button>
           </div>
           <div className="progress-wrap">
             <div className="progress-track">
@@ -525,7 +591,16 @@ function App() {
                     />
                     <span>Этап {index + 1}</span>
                   </label>
-                  {stage.id === currentStageId && <span className="badge">Текущий</span>}
+                  <div className="row-actions">
+                    {stage.id === currentStageId && <span className="badge">Текущий</span>}
+                    <button
+                      type="button"
+                      className="danger-icon-button"
+                      onClick={() => removeStage(stage.id)}
+                    >
+                      Удалить
+                    </button>
+                  </div>
                 </div>
 
                 <EditableText
@@ -575,10 +650,12 @@ function App() {
       {appState.activeTab === "documents" && (
         <section className="card content-card">
           <div className="section-head">
-            <h2>Документы</h2>
-            <p>
-              Готово: {documentsDoneCount}/{allDocuments.length}
-            </p>
+            <div className="section-head-main">
+              <h2>Документы</h2>
+              <p>
+                Готово: {documentsDoneCount}/{allDocuments.length}
+              </p>
+            </div>
           </div>
           <div className="progress-wrap">
             <div className="progress-track">
@@ -595,21 +672,32 @@ function App() {
               return (
                 <article className="doc-section" key={section.id}>
                   <div className="section-head">
-                    <EditableText
-                      value={section.title}
-                      className="section-title"
-                      onSave={(nextValue) =>
-                        updateState((prev) => ({
-                          ...prev,
-                          documentSections: prev.documentSections.map((entry) =>
-                            entry.id === section.id ? { ...entry, title: nextValue } : entry,
-                          ),
-                        }))
-                      }
-                    />
-                    <p>
-                      {sectionDone}/{section.items.length}
-                    </p>
+                    <div className="section-head-main">
+                      <EditableText
+                        value={section.title}
+                        className="section-title"
+                        onSave={(nextValue) =>
+                          updateState((prev) => ({
+                            ...prev,
+                            documentSections: prev.documentSections.map((entry) =>
+                              entry.id === section.id
+                                ? { ...entry, title: nextValue }
+                                : entry,
+                            ),
+                          }))
+                        }
+                      />
+                      <p>
+                        {sectionDone}/{section.items.length}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="secondary-action small"
+                      onClick={() => addDocument(section.id)}
+                    >
+                      + Документ
+                    </button>
                   </div>
 
                   <div className="progress-wrap compact">
@@ -621,7 +709,7 @@ function App() {
 
                   <ul className="item-list">
                     {section.items.map((item) => (
-                      <li key={item.id}>
+                      <li key={item.id} className="doc-item-row">
                         <label className="checkbox-row">
                           <input
                             type="checkbox"
@@ -629,12 +717,18 @@ function App() {
                             onChange={() =>
                               updateState((prev) => ({
                                 ...prev,
-                                documentSections: prev.documentSections.map((entry) => ({
-                                  ...entry,
-                                  items: entry.items.map((doc) =>
-                                    doc.id === item.id ? { ...doc, done: !doc.done } : doc,
-                                  ),
-                                })),
+                                documentSections: prev.documentSections.map((entry) =>
+                                  entry.id === section.id
+                                    ? {
+                                        ...entry,
+                                        items: entry.items.map((doc) =>
+                                          doc.id === item.id
+                                            ? { ...doc, done: !doc.done }
+                                            : doc,
+                                        ),
+                                      }
+                                    : entry,
+                                ),
                               }))
                             }
                           />
@@ -644,16 +738,29 @@ function App() {
                             onSave={(nextValue) =>
                               updateState((prev) => ({
                                 ...prev,
-                                documentSections: prev.documentSections.map((entry) => ({
-                                  ...entry,
-                                  items: entry.items.map((doc) =>
-                                    doc.id === item.id ? { ...doc, title: nextValue } : doc,
-                                  ),
-                                })),
+                                documentSections: prev.documentSections.map((entry) =>
+                                  entry.id === section.id
+                                    ? {
+                                        ...entry,
+                                        items: entry.items.map((doc) =>
+                                          doc.id === item.id
+                                            ? { ...doc, title: nextValue }
+                                            : doc,
+                                        ),
+                                      }
+                                    : entry,
+                                ),
                               }))
                             }
                           />
                         </label>
+                        <button
+                          type="button"
+                          className="danger-icon-button"
+                          onClick={() => removeDocument(section.id, item.id)}
+                        >
+                          Удалить
+                        </button>
                       </li>
                     ))}
                   </ul>

@@ -158,6 +158,43 @@ h2 {
   gap: 10px;
 }
 
+.actions-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.section-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.icon-button {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.icon-button.danger {
+  border-color: #f2cfcc;
+  color: #9f3a32;
+}
+
+.icon-button.danger:hover {
+  border-color: #d98279;
+}
+
 .stage-card,
 .doc-section,
 .budget-item {
@@ -254,6 +291,13 @@ h2 {
 .item-list li {
   border-top: 1px solid #f0efe9;
   padding-top: 8px;
+}
+
+.item-list .doc-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 .doc-title {
