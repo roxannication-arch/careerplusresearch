@@ -1,0 +1,295 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap");
+
+:root {
+  --bg: #f5f4f0;
+  --card: #ffffff;
+  --border: #e8e7e2;
+  --text: #1f2a28;
+  --muted: #6d7672;
+  --accent: #1d9e75;
+  --accent-soft: rgba(29, 158, 117, 0.12);
+  --shadow: 0 6px 18px rgba(20, 28, 26, 0.08);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Manrope", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+}
+
+.app-shell {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px 14px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.app-header {
+  padding: 16px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+h1 {
+  margin: 8px 0 4px;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tab-button {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 10px 6px;
+  cursor: pointer;
+}
+
+.tab-button.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.content-card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.section-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-track {
+  width: 100%;
+  height: 8px;
+  background: #ecebe6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+
+.progress-wrap span {
+  min-width: 40px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.progress-wrap.compact .progress-track {
+  height: 6px;
+}
+
+.list-grid,
+.documents-list,
+.budget-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stage-card,
+.doc-section,
+.budget-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+}
+
+.stage-card.current {
+  border: 2px solid var(--accent);
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge {
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-weight: 700;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.checkbox-row input[type="checkbox"] {
+  accent-color: var(--accent);
+  margin: 0;
+}
+
+.editable-button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  cursor: text;
+  width: 100%;
+  font: inherit;
+}
+
+.editable-input {
+  width: 100%;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 4px 6px;
+  font: inherit;
+  color: inherit;
+}
+
+.stage-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.stage-details {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.stage-timeline {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.item-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-list li {
+  border-top: 1px solid #f0efe9;
+  padding-top: 8px;
+}
+
+.doc-title {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.budget-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.budget-planned {
+  margin: 5px 0 9px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.spent-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.spent-field input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.spent-field input:focus-visible {
+  outline: 2px solid rgba(29, 158, 117, 0.28);
+  border-color: var(--accent);
+}
