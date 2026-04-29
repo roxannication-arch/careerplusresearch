@@ -12,6 +12,8 @@ const SECTION_ICON_BY_ID = {
 
 const createInitialState = () => ({
   activeTab: "stages",
+  theme: "light",
+  documentsCompact: false,
   stages: [
     {
       id: "stage-1",
@@ -370,13 +372,31 @@ const calcPercent = (done, total) => {
 const generateId = (prefix) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+const normalizeState = (state) => {
+  const fallback = createInitialState();
+
+  if (!state || typeof state !== "object") {
+    return fallback;
+  }
+
+  return {
+    ...fallback,
+    ...state,
+    theme: state.theme === "dark" ? "dark" : "light",
+    documentsCompact: Boolean(state.documentsCompact),
+    stages: Array.isArray(state.stages) ? state.stages : fallback.stages,
+    documentSections: Array.isArray(state.documentSections)
+      ? state.documentSections
+      : fallback.documentSections,
+    budgetItems: Array.isArray(state.budgetItems)
+      ? state.budgetItems
+      : fallback.budgetItems,
+  };
+};
+
 const EditableText = ({ value, onSave, className }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(value);
-
-  useEffect(() => {
-    setDraft(value);
-  }, [value]);
 
   const save = () => {
     const nextValue = draft.trim();
@@ -411,7 +431,10 @@ const EditableText = ({ value, onSave, className }) => {
     <button
       type="button"
       className={`editable-button ${className}`}
-      onClick={() => setIsEditing(true)}
+      onClick={() => {
+        setDraft(value);
+        setIsEditing(true);
+      }}
       title="Нажмите, чтобы отредактировать"
     >
       {value}
@@ -496,6 +519,23 @@ const SectionIcon = ({ type }) => {
   );
 };
 
+const TrashIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M4 7h16" />
+    <path d="M9 7V5h6v2" />
+    <path d="M7 7l1 12h8l1-12" />
+    <path d="M10 11v5M14 11v5" />
+  </svg>
+);
+
 function App() {
   const [appState, setAppState] = useState(() => {
     const storedState = localStorage.getItem(STORAGE_KEY);
@@ -505,8 +545,8 @@ function App() {
     }
 
     try {
-      return JSON.parse(storedState);
-    } catch (error) {
+      return normalizeState(JSON.parse(storedState));
+    } catch {
       return createInitialState();
     }
   });
@@ -514,6 +554,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
   }, [appState]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", appState.theme);
+  }, [appState.theme]);
 
   const stageDoneCount = appState.stages.filter((stage) => stage.done).length;
   const stagePercent = calcPercent(stageDoneCount, appState.stages.length);
@@ -615,6 +659,20 @@ function App() {
     }));
   };
 
+  const toggleTheme = () => {
+    updateState((prev) => ({
+      ...prev,
+      theme: prev.theme === "dark" ? "light" : "dark",
+    }));
+  };
+
+  const toggleDocumentsCompact = () => {
+    updateState((prev) => ({
+      ...prev,
+      documentsCompact: !prev.documentsCompact,
+    }));
+  };
+
   const tabs = [
     { id: "stages", label: "Этапы" },
     { id: "documents", label: "Документы" },
@@ -623,31 +681,50 @@ function App() {
 
   return (
     <main className="app-shell">
-      <header className="app-header card">
-        <p className="eyebrow">L-1A visa tracker</p>
-        <h1>L-1A трекер</h1>
-        <p className="subtitle">
-          Чек-лист этапов, документов и бюджета для контроля L-1A процесса.
-        </p>
-      </header>
+      <div className="top-stack">
+        <header className="app-header card">
+          <p className="eyebrow">L-1A visa tracker</p>
+          <h1>L-1A трекер</h1>
+          <p className="subtitle">
+            Чек-лист этапов, документов и бюджета для контроля L-1A процесса.
+          </p>
+        </header>
 
-      <nav className="tabs" aria-label="Навигация по трекеру">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            className={`tab-button ${appState.activeTab === tab.id ? "active" : ""}`}
-            onClick={() =>
-              updateState((prev) => ({
-                ...prev,
-                activeTab: tab.id,
-              }))
-            }
-          >
-            {tab.label}
+        <nav className="tabs card" aria-label="Навигация по трекеру">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`tab-button ${appState.activeTab === tab.id ? "active" : ""}`}
+              onClick={() =>
+                updateState((prev) => ({
+                  ...prev,
+                  activeTab: tab.id,
+                }))
+              }
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="utility-row card">
+          <button type="button" className="secondary-action" onClick={toggleTheme}>
+            {appState.theme === "dark" ? "Светлая тема" : "Темная тема"}
           </button>
-        ))}
-      </nav>
+          {appState.activeTab === "documents" ? (
+            <button
+              type="button"
+              className="secondary-action"
+              onClick={toggleDocumentsCompact}
+            >
+              {appState.documentsCompact ? "Обычный список" : "Компактный список"}
+            </button>
+          ) : (
+            <span className="utility-note">v3 дизайн</span>
+          )}
+        </div>
+      </div>
 
       {appState.activeTab === "stages" && (
         <section className="card content-card">
@@ -669,8 +746,7 @@ function App() {
             <span>{stagePercent}%</span>
           </div>
           <div className="list-grid">
-            {appState.stages.map((stage, index) => (
-              (() => {
+            {appState.stages.map((stage, index) => {
                 const stageState = stage.done
                   ? "done"
                   : stage.id === currentStageId
@@ -678,88 +754,86 @@ function App() {
                     : "pending";
 
                 return (
-              <article
-                key={stage.id}
-                className={`stage-card ${stageState}`}
-              >
-                <div className="row">
-                  <label className="checkbox-row">
-                    <input
-                      type="checkbox"
-                      checked={stage.done}
-                      onChange={() =>
+                  <article key={stage.id} className={`stage-card ${stageState}`}>
+                    <div className="row">
+                      <label className="checkbox-row">
+                        <input
+                          type="checkbox"
+                          checked={stage.done}
+                          onChange={() =>
+                            updateState((prev) => ({
+                              ...prev,
+                              stages: prev.stages.map((item) =>
+                                item.id === stage.id
+                                  ? {
+                                      ...item,
+                                      done: !item.done,
+                                    }
+                                  : item,
+                              ),
+                            }))
+                          }
+                        />
+                        <span>Этап {index + 1}</span>
+                      </label>
+                      <div className="row-actions">
+                        {stage.done && <span className="badge done">Готово</span>}
+                        {!stage.done && stage.id === currentStageId && (
+                          <span className="badge current">Текущий</span>
+                        )}
+                        <button
+                          type="button"
+                          className="icon-action"
+                          onClick={() => removeStage(stage.id)}
+                          aria-label={`Удалить этап ${index + 1}`}
+                          title="Удалить этап"
+                        >
+                          <TrashIcon />
+                        </button>
+                      </div>
+                    </div>
+
+                    <EditableText
+                      value={stage.title}
+                      className="stage-title"
+                      onSave={(nextValue) =>
                         updateState((prev) => ({
                           ...prev,
                           stages: prev.stages.map((item) =>
-                            item.id === stage.id
-                              ? {
-                                  ...item,
-                                  done: !item.done,
-                                }
-                              : item,
+                            item.id === stage.id ? { ...item, title: nextValue } : item,
                           ),
                         }))
                       }
                     />
-                    <span>Этап {index + 1}</span>
-                  </label>
-                  <div className="row-actions">
-                    {stage.done && <span className="badge done">Готово</span>}
-                    {!stage.done && stage.id === currentStageId && (
-                      <span className="badge current">Текущий</span>
-                    )}
-                    <button
-                      type="button"
-                      className="danger-icon-button"
-                      onClick={() => removeStage(stage.id)}
-                    >
-                      Удалить
-                    </button>
-                  </div>
-                </div>
 
-                <EditableText
-                  value={stage.title}
-                  className="stage-title"
-                  onSave={(nextValue) =>
-                    updateState((prev) => ({
-                      ...prev,
-                      stages: prev.stages.map((item) =>
-                        item.id === stage.id ? { ...item, title: nextValue } : item,
-                      ),
-                    }))
-                  }
-                />
+                    <EditableText
+                      value={stage.details}
+                      className="stage-details"
+                      onSave={(nextValue) =>
+                        updateState((prev) => ({
+                          ...prev,
+                          stages: prev.stages.map((item) =>
+                            item.id === stage.id ? { ...item, details: nextValue } : item,
+                          ),
+                        }))
+                      }
+                    />
 
-                <EditableText
-                  value={stage.details}
-                  className="stage-details"
-                  onSave={(nextValue) =>
-                    updateState((prev) => ({
-                      ...prev,
-                      stages: prev.stages.map((item) =>
-                        item.id === stage.id ? { ...item, details: nextValue } : item,
-                      ),
-                    }))
-                  }
-                />
-
-                <EditableText
-                  value={stage.timeline}
-                  className="stage-timeline"
-                  onSave={(nextValue) =>
-                    updateState((prev) => ({
-                      ...prev,
-                      stages: prev.stages.map((item) =>
-                        item.id === stage.id ? { ...item, timeline: nextValue } : item,
-                      ),
-                    }))
-                  }
-                />
-              </article>
+                    <EditableText
+                      value={stage.timeline}
+                      className="stage-timeline"
+                      onSave={(nextValue) =>
+                        updateState((prev) => ({
+                          ...prev,
+                          stages: prev.stages.map((item) =>
+                            item.id === stage.id ? { ...item, timeline: nextValue } : item,
+                          ),
+                        }))
+                      }
+                    />
+                  </article>
                 );
-              })()
-            ))}
+              })}
           </div>
         </section>
       )}
@@ -784,7 +858,7 @@ function App() {
             <span>{documentsPercent}%</span>
           </div>
 
-          <div className="documents-list">
+          <div className={`documents-list ${appState.documentsCompact ? "compact" : ""}`}>
             {appState.documentSections.map((section) => {
               const sectionDone = section.items.filter((item) => item.done).length;
               const sectionPercent = calcPercent(sectionDone, section.items.length);
@@ -796,7 +870,7 @@ function App() {
                       <div className="section-title-wrap">
                         <span className="section-icon">
                           <SectionIcon
-                            type={SECTION_ICON_BY_ID[section.id] || section.icon || "petition"}
+                            type={SECTION_ICON_BY_ID[section.id] || section.icon || "folder"}
                           />
                         </span>
                         <EditableText
@@ -828,10 +902,12 @@ function App() {
                       </button>
                       <button
                         type="button"
-                        className="danger-icon-button"
+                        className="icon-action"
                         onClick={() => removeSection(section.id)}
+                        aria-label="Удалить секцию"
+                        title="Удалить секцию"
                       >
-                        Удалить секцию
+                        <TrashIcon />
                       </button>
                     </div>
                   </div>
@@ -892,10 +968,12 @@ function App() {
                         </label>
                         <button
                           type="button"
-                          className="danger-icon-button"
+                          className="icon-action"
                           onClick={() => removeDocument(section.id, item.id)}
+                          aria-label="Удалить документ"
+                          title="Удалить документ"
                         >
-                          Удалить
+                          <TrashIcon />
                         </button>
                       </li>
                     ))}
