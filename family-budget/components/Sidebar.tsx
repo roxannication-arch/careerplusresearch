@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const navItems = [
   { href: "/dashboard", label: "Overview" },
   { href: "/budget", label: "Plan" },
+  { href: "/planfact", label: "Actual" },
   { href: "/transactions", label: "Spending" },
   { href: "/pockets", label: "Pockets" },
 ];
@@ -15,7 +16,7 @@ export function Sidebar() {
 
   return (
     <nav className="fixed right-1/2 bottom-0 z-[100] w-full max-w-[480px] translate-x-1/2 border-t border-[0.5px] border-[var(--line2)] bg-[rgba(255,255,255,0.92)] py-[10px] [backdrop-filter:saturate(180%)_blur(20px)]">
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-5">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const color = isActive ? "var(--blue)" : "var(--ink3)";
@@ -43,6 +44,12 @@ export function Sidebar() {
                     <path d="M6 3.5h9l4 4v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
                     <path d="M14.5 3.5v4h4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
                     <path d="M8.5 12h7M8.5 15.5h7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                  </svg>
+                )}
+                {item.href === "/planfact" && (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4.5 18.5h15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                    <path d="M7.5 16.5v-5M12 16.5V8M16.5 16.5V5.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
                   </svg>
                 )}
                 {item.href === "/pockets" && (

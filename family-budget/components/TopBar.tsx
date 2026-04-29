@@ -12,6 +12,7 @@ const navTabs = [
   { href: "/dashboard", label: "Overview" },
   { href: "/budget", label: "Plan" },
   { href: "/transactions", label: "Spending" },
+  { href: "/planfact", label: "Actual" },
   { href: "/pockets", label: "Pockets" },
 ];
 
