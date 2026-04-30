@@ -159,21 +159,16 @@ function AnimatedValueWithSymbol({
   );
 }
 
-function formatDateTime(dateValue: string): string {
+function formatDateLabel(dateValue: string): string {
   const parsed = new Date(`${dateValue}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) {
-    return `${dateValue} · 00:00`;
+    return dateValue;
   }
 
-  const datePart = parsed.toLocaleDateString("ru-RU", {
+  return parsed.toLocaleDateString("ru-RU", {
     day: "2-digit",
     month: "short",
   });
-  const timePart = parsed.toLocaleTimeString("ru-RU", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  return `${datePart} · ${timePart}`;
 }
 
 export default function DashboardPage() {
@@ -414,8 +409,8 @@ export default function DashboardPage() {
                     </p>
                     <p className="mt-[2px] truncate text-[11px] text-[var(--ink3)]">
                       {transaction.note.trim()
-                        ? `${formatDateTime(transaction.date)} · ${transaction.note.trim()}`
-                        : formatDateTime(transaction.date)}
+                        ? `${formatDateLabel(transaction.date)} · ${transaction.note.trim()}`
+                        : formatDateLabel(transaction.date)}
                     </p>
                   </div>
                   <DualAmount
