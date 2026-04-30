@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Family Budget
 
-## Getting Started
+Next.js app for shared household budgeting with monthly plans, actual transactions, pockets, and plan-vs-fact analytics.
 
-First, run the development server:
+## Supabase sync (shared updates for both users)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+The app can now sync state through Supabase in addition to localStorage.  
+If Supabase env vars are configured, changes made by one user are pushed to the cloud and reflected for the other user (realtime).
+
+### 1) Create Supabase table
+
+Run this SQL in Supabase SQL Editor:
+
+```sql
+create table if not exists public.family_budget_state (
+  id text primary key,
+  state jsonb not null,
+  updated_at timestamptz not null default timezone('utc'::text, now())
+);
+
+insert into public.family_budget_state (id, state)
+values ('shared', '{"selectedMonth":"2026-01","months":{}}'::jsonb)
+on conflict (id) do nothing;
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2) Enable Realtime for the table
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+In Supabase dashboard:
+- Database -> Replication
+- Turn on replication for `public.family_budget_state`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3) Configure env vars
 
-## Learn More
+Copy `.env.example` to `.env.local` and set:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+NEXT_PUBLIC_BUDGET_ROOM=family-main
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 4) RLS policy (recommended)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+For a private shared app, configure RLS/policies according to your auth model.  
+If auth is not enabled yet, temporarily disable RLS for this table only while testing.
 
-## Deploy on Vercel
+## Local development
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm install
+npm run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open [http://localhost:3000](http://localhost:3000).

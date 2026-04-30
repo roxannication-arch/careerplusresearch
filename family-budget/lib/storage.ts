@@ -11,12 +11,19 @@ import {
   Pocket,
   Transaction,
 } from "@/lib/types";
+import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
 const STORAGE_KEY = "family-budget-storage-v1";
 const LEGACY_STORAGE_KEYS = ["family-budget-storage"];
 const MONTH_KEY_PATTERN = /^(\d{4})-(\d{1,2})$/;
+const CLOUD_TABLE = "family_budget_state";
+export const CLOUD_SYNC_KEY = "family-budget-cloud-sync-id";
 
 export const DEFAULT_EXCHANGE_RATE = 92;
+
+export function getDefaultCloudSyncId(): string {
+  return process.env.NEXT_PUBLIC_BUDGET_ROOM?.trim() || "family-main";
+}
 
 function createDefaultIncomes(): IncomeItem[] {
   return [
@@ -274,6 +281,10 @@ function normalizeState(input: unknown): BudgetStorageState {
   };
 }
 
+export function parseStorageState(input: unknown): BudgetStorageState {
+  return normalizeState(input);
+}
+
 export function buildMonthOptions(centerMonth: string, range = 24): string[] {
   const normalizedCenterMonth = normalizeMonthKey(centerMonth);
   if (!normalizedCenterMonth) {
@@ -349,6 +360,118 @@ export function saveStorageState(state: BudgetStorageState): void {
   }
 
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+export function getCloudSyncSession(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  return window.localStorage.getItem(CLOUD_SYNC_KEY) ?? "";
+}
+
+export function setCloudSyncSession(syncId: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(CLOUD_SYNC_KEY, syncId.trim());
+}
+
+export function clearCloudSyncSession(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.removeItem(CLOUD_SYNC_KEY);
+}
+
+function parseCloudState(rawState: unknown): BudgetStorageState {
+  return parseStorageState(rawState);
+}
+
+export async function getCloudStorageState(syncId: string): Promise<BudgetStorageState | null> {
+  const trimmedId = syncId.trim();
+  if (!trimmedId || !isSupabaseConfigured()) {
+    return null;
+  }
+
+  const client = getSupabaseClient();
+  if (!client) {
+    return null;
+  }
+
+  const { data, error } = await client
+    .from(CLOUD_TABLE)
+    .select("state")
+    .eq("id", trimmedId)
+    .maybeSingle<{ state: unknown }>();
+  if (error || !data?.state) {
+    return null;
+  }
+  return parseCloudState(data.state);
+}
+
+export async function saveCloudStorageState(
+  syncId: string,
+  state: BudgetStorageState,
+): Promise<void> {
+  const trimmedId = syncId.trim();
+  if (!trimmedId || !isSupabaseConfigured()) {
+    return;
+  }
+
+  const client = getSupabaseClient();
+  if (!client) {
+    return;
+  }
+
+  await client.from(CLOUD_TABLE).upsert(
+    {
+      id: trimmedId,
+      state,
+      updated_at: new Date().toISOString(),
+    },
+    {
+      onConflict: "id",
+    },
+  );
+}
+
+export function subscribeToCloudStorageState(
+  syncId: string,
+  onState: (state: BudgetStorageState) => void,
+): (() => void) | undefined {
+  const trimmedId = syncId.trim();
+  if (!trimmedId || !isSupabaseConfigured()) {
+    return undefined;
+  }
+
+  const client = getSupabaseClient();
+  if (!client) {
+    return undefined;
+  }
+
+  const channel = client
+    .channel(`family-budget-state:${trimmedId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: CLOUD_TABLE,
+        filter: `id=eq.${trimmedId}`,
+      },
+      (payload) => {
+        const row = (payload.new ?? null) as { state?: unknown } | null;
+        if (!row?.state) {
+          return;
+        }
+        onState(parseCloudState(row.state));
+      },
+    )
+    .subscribe();
+
+  return () => {
+    void client.removeChannel(channel);
+  };
 }
 
 export function getMonthData(state: BudgetStorageState, monthKey: string): MonthBudgetData {

@@ -7,6 +7,7 @@ import {
   useEffect,
   useContext,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -14,12 +15,19 @@ import { convertCurrency } from "@/lib/currency";
 import { createId } from "@/lib/id";
 import {
   buildMonthOptions,
+  clearCloudSyncSession,
   copyMonthPlan as copyMonthPlanInState,
+  getCloudStorageState,
+  getCloudSyncSession,
+  getDefaultCloudSyncId,
   getMonthData,
   getPreviousMonthKey,
   hasMonthPlanData,
   loadStorageState,
+  saveCloudStorageState,
   saveStorageState,
+  setCloudSyncSession,
+  subscribeToCloudStorageState,
   setSelectedMonth as selectMonthInState,
   upsertMonthData,
 } from "@/lib/storage";
@@ -38,7 +46,9 @@ interface BudgetContextValue {
   selectedMonth: string;
   monthOptions: string[];
   monthData: ReturnType<typeof getMonthData>;
+  cloudSyncId: string;
   setSelectedMonth: (monthKey: string) => void;
+  setCloudSyncId: (syncId: string) => void;
   updateExchangeRate: (exchangeRate: number) => void;
   convertIncomeCurrency: (id: string) => void;
   convertExpenseCurrency: (id: string) => void;
@@ -81,6 +91,16 @@ function sanitizePositiveNumber(value: unknown, fallback: number): number {
 
 export function BudgetProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<BudgetStorageState>(() => loadStorageState());
+  const [cloudSyncId, setCloudSyncIdState] = useState<string>(
+    () => getCloudSyncSession() || getDefaultCloudSyncId(),
+  );
+  const cloudReadyRef = useRef(false);
+  const remoteStateHashRef = useRef<string | null>(null);
+  const stateRef = useRef(state);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     const sync = () => {
@@ -92,7 +112,66 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     saveStorageState(state);
-  }, [state]);
+    if (!cloudSyncId || !cloudReadyRef.current) {
+      return;
+    }
+
+    const serializedState = JSON.stringify(state);
+    if (remoteStateHashRef.current === serializedState) {
+      remoteStateHashRef.current = null;
+      return;
+    }
+
+    void saveCloudStorageState(cloudSyncId, state);
+  }, [cloudSyncId, state]);
+
+  useEffect(() => {
+    if (!cloudSyncId) {
+      cloudReadyRef.current = false;
+      remoteStateHashRef.current = null;
+      return;
+    }
+
+    let isActive = true;
+    let unsubscribe: (() => void) | undefined;
+    cloudReadyRef.current = false;
+    setCloudSyncSession(cloudSyncId);
+
+    void (async () => {
+      const cloudState = await getCloudStorageState(cloudSyncId);
+      if (!isActive) {
+        return;
+      }
+
+      if (cloudState) {
+        const cloudHash = JSON.stringify(cloudState);
+        remoteStateHashRef.current = cloudHash;
+        setState((previous) => (JSON.stringify(previous) === cloudHash ? previous : cloudState));
+      } else {
+        await saveCloudStorageState(cloudSyncId, stateRef.current);
+      }
+
+      if (!isActive) {
+        return;
+      }
+
+      unsubscribe = subscribeToCloudStorageState(cloudSyncId, (nextState) => {
+        if (!isActive) {
+          return;
+        }
+        const nextHash = JSON.stringify(nextState);
+        remoteStateHashRef.current = nextHash;
+        setState((previous) => (JSON.stringify(previous) === nextHash ? previous : nextState));
+      });
+      cloudReadyRef.current = true;
+    })();
+
+    return () => {
+      isActive = false;
+      cloudReadyRef.current = false;
+      unsubscribe?.();
+    };
+  }, [cloudSyncId]);
 
   const selectedMonth = state.selectedMonth;
   const monthData = useMemo(() => getMonthData(state, selectedMonth), [state, selectedMonth]);
@@ -109,6 +188,20 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
 
   const setSelectedMonth = useCallback((monthKey: string) => {
     setState((previous) => selectMonthInState(previous, monthKey));
+  }, []);
+
+  const setCloudSyncId = useCallback((syncId: string) => {
+    const trimmed = syncId.trim();
+    if (!trimmed) {
+      setCloudSyncIdState("");
+      clearCloudSyncSession();
+      cloudReadyRef.current = false;
+      remoteStateHashRef.current = null;
+      return;
+    }
+
+    setCloudSyncIdState(trimmed);
+    setCloudSyncSession(trimmed);
   }, []);
 
   const updateExchangeRate = useCallback(
@@ -479,7 +572,9 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       selectedMonth,
       monthOptions,
       monthData,
+      cloudSyncId,
       setSelectedMonth,
+      setCloudSyncId,
       updateExchangeRate,
       convertIncomeCurrency,
       convertExpenseCurrency,
@@ -506,7 +601,9 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       selectedMonth,
       monthOptions,
       monthData,
+      cloudSyncId,
       setSelectedMonth,
+      setCloudSyncId,
       updateExchangeRate,
       convertIncomeCurrency,
       convertExpenseCurrency,
