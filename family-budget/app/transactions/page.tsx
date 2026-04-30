@@ -119,6 +119,7 @@ export default function TransactionsPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [entryType, setEntryType] = useState<"expense" | "income">("expense");
   const [transactionTypeFilter, setTransactionTypeFilter] = useState<"all" | "expense" | "income">("all");
+  const [currencyQuickFilter, setCurrencyQuickFilter] = useState<"all" | Currency>("all");
 
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -165,7 +166,11 @@ export default function TransactionsPage() {
     : null;
 
   const hasActiveFilters =
-    transactionTypeFilter !== "all" || categoryFilter !== "all" || Boolean(dateFrom) || Boolean(dateTo);
+    transactionTypeFilter !== "all" ||
+    currencyQuickFilter !== "all" ||
+    categoryFilter !== "all" ||
+    Boolean(dateFrom) ||
+    Boolean(dateTo);
 
   useEffect(() => {
     if (!isFilterOpen) {
@@ -197,6 +202,9 @@ export default function TransactionsPage() {
         if (transactionTypeFilter !== "all" && transaction.type !== transactionTypeFilter) {
           return false;
         }
+        if (currencyQuickFilter !== "all" && transaction.currency !== currencyQuickFilter) {
+          return false;
+        }
         if (
           categoryFilter !== "all" &&
           transaction.type === "expense" &&
@@ -212,7 +220,14 @@ export default function TransactionsPage() {
         }
         return true;
       }),
-    [categoryFilter, dateFrom, dateTo, monthData.transactions, transactionTypeFilter],
+    [
+      categoryFilter,
+      currencyQuickFilter,
+      dateFrom,
+      dateTo,
+      monthData.transactions,
+      transactionTypeFilter,
+    ],
   );
 
   const groupedTransactions = useMemo(() => {
@@ -346,6 +361,7 @@ export default function TransactionsPage() {
             type="button"
             onClick={() => {
               setTransactionTypeFilter("all");
+              setCurrencyQuickFilter("all");
               setCategoryFilter("all");
               setDateFrom("");
               setDateTo("");
@@ -361,9 +377,73 @@ export default function TransactionsPage() {
         </div>
       </div>
 
+      <div className="mb-3 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {([
+          { key: "all", label: "All" },
+          { key: "expense", label: "Expenses" },
+          { key: "income", label: "Income" },
+        ] as const).map((chip) => {
+          const active = transactionTypeFilter === chip.key;
+          return (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={() => setTransactionTypeFilter(chip.key)}
+              className={cn(
+                "shrink-0 rounded-[10px] px-3 py-1.5 text-[12px] transition-colors",
+                active ? "bg-[var(--blue-bg)] font-semibold text-[var(--blue)]" : "bg-[var(--white)] text-[var(--ink3)]",
+              )}
+            >
+              {chip.label}
+            </button>
+          );
+        })}
+
+        {(["RUB", "USD"] as const).map((chip) => {
+          const active = currencyQuickFilter === chip;
+          return (
+            <button
+              key={chip}
+              type="button"
+              onClick={() => setCurrencyQuickFilter((previous) => (previous === chip ? "all" : chip))}
+              className={cn(
+                "shrink-0 rounded-[10px] px-3 py-1.5 text-[12px] transition-colors",
+                active ? "bg-[var(--blue-bg)] font-semibold text-[var(--blue)]" : "bg-[var(--white)] text-[var(--ink3)]",
+              )}
+            >
+              {chip}
+            </button>
+          );
+        })}
+      </div>
+
       {groupedTransactions.length === 0 ? (
-        <div className="rounded-2xl bg-[var(--white)] px-4 py-4 text-[13px] text-[var(--ink3)]">
-          No transactions yet.
+        <div className="rounded-2xl bg-[var(--white)] px-4 py-4">
+          <p className="text-[13px] text-[var(--ink3)]">No transactions yet.</p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setEditingTransactionId(null);
+                setEntryType("expense");
+                setIsSheetOpen(true);
+              }}
+              className="rounded-[10px] bg-[var(--bg)] px-3 py-1.5 text-[12px] font-medium text-[var(--ink2)]"
+            >
+              Add expense
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEditingTransactionId(null);
+                setEntryType("income");
+                setIsSheetOpen(true);
+              }}
+              className="rounded-[10px] bg-[var(--blue-bg)] px-3 py-1.5 text-[12px] font-semibold text-[var(--blue)]"
+            >
+              Add income
+            </button>
+          </div>
         </div>
       ) : (
         groupedTransactions.map((group, groupIndex) => (

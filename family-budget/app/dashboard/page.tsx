@@ -224,6 +224,50 @@ export default function DashboardPage() {
       .slice(0, 3);
   }, [monthData.transactions]);
 
+  const insights = useMemo(() => {
+    const list: Array<{ id: string; text: string; tone: "red" | "amber" | "green" | "blue" }> = [];
+
+    const incomeGap = plannedIncome - totalIncome;
+    if (incomeGap > 0) {
+      list.push({
+        id: "income-gap",
+        tone: "amber",
+        text: `Income goal remaining: ₽${formatNumber(incomeGap)}`,
+      });
+    } else if (plannedIncome > 0) {
+      list.push({
+        id: "income-goal",
+        tone: "green",
+        text: "Income goal reached this month",
+      });
+    }
+
+    const spendGap = totalPlanned - actualSpent;
+    if (spendGap < 0) {
+      list.push({
+        id: "spend-over",
+        tone: "red",
+        text: `Over spending plan by ₽${formatNumber(Math.abs(spendGap))}`,
+      });
+    } else if (totalPlanned > 0) {
+      list.push({
+        id: "spend-left",
+        tone: "blue",
+        text: `Still in plan: ₽${formatNumber(spendGap)} left`,
+      });
+    }
+
+    if (pocketTotal > 0) {
+      list.push({
+        id: "pocket-progress",
+        tone: "blue",
+        text: `Saved to pockets: ₽${formatNumber(pocketTotal)}`,
+      });
+    }
+
+    return list.slice(0, 3);
+  }, [actualSpent, plannedIncome, pocketTotal, totalIncome, totalPlanned]);
+
   return (
     <div className="-mx-4 -mt-6 bg-[var(--bg)] px-4 pt-6 pb-4">
       <section className="mb-3 rounded-[20px] bg-[var(--white)] px-5 py-6">
@@ -299,11 +343,46 @@ export default function DashboardPage() {
 
       <section>
         <p className="mb-[10px] mt-5 px-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--ink3)]">
+          Insights
+        </p>
+        <div className="rounded-2xl bg-[var(--white)] px-3 py-3">
+          {insights.length === 0 ? (
+            <div className="px-1 py-1 text-[13px] text-[var(--ink3)]">
+              Add your first transaction to unlock smart insights.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {insights.map((insight) => (
+                <div
+                  key={insight.id}
+                  className={cn(
+                    "rounded-xl px-3 py-2 text-[12px] font-medium",
+                    insight.tone === "red" && "bg-[var(--red-bg)] text-[var(--red)]",
+                    insight.tone === "amber" && "bg-[var(--amber-bg)] text-[var(--amber)]",
+                    insight.tone === "green" && "bg-[var(--green-bg)] text-[var(--green)]",
+                    insight.tone === "blue" && "bg-[var(--blue-bg)] text-[var(--blue)]",
+                  )}
+                >
+                  {insight.text}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <p className="mb-[10px] mt-5 px-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--ink3)]">
           Recent spending
         </p>
         <div className="overflow-hidden rounded-2xl bg-[var(--white)]">
           {recentTransactions.length === 0 ? (
-            <div className="px-4 py-4 text-[13px] text-[var(--ink3)]">No transactions yet.</div>
+            <div className="px-4 py-4">
+              <p className="text-[13px] text-[var(--ink3)]">No transactions yet.</p>
+              <Link href="/transactions" className="mt-2 inline-block text-[12px] font-medium text-[var(--blue)]">
+                Add first transaction →
+              </Link>
+            </div>
           ) : (
             recentTransactions.map((transaction, index) => {
               const categoryName =
@@ -355,7 +434,12 @@ export default function DashboardPage() {
         </p>
         <div className="overflow-hidden rounded-2xl bg-[var(--white)]">
           {monthData.pockets.length === 0 ? (
-            <div className="px-4 py-4 text-[13px] text-[var(--ink3)]">No pockets yet.</div>
+            <div className="px-4 py-4">
+              <p className="text-[13px] text-[var(--ink3)]">No pockets yet.</p>
+              <Link href="/pockets" className="mt-2 inline-block text-[12px] font-medium text-[var(--blue)]">
+                Create first pocket →
+              </Link>
+            </div>
           ) : (
             monthData.pockets.map((pocket, index) => {
               const target = pocket.targetAmount ?? 0;
