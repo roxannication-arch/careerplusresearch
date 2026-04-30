@@ -126,7 +126,7 @@ function IconWrap({ kind }: { kind: IconKind }) {
 }
 
 export default function TransactionsPage() {
-  const { monthData, addTransaction } = useBudget();
+  const { monthData, addTransaction, updateTransaction, deleteTransaction } = useBudget();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [entryType, setEntryType] = useState<"expense" | "income">("expense");
@@ -149,6 +149,7 @@ export default function TransactionsPage() {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [categoryId, setCategoryId] = useState(monthData.expenses[0]?.id ?? "");
   const [incomeSource, setIncomeSource] = useState<"Roksana" | "Milena">("Roksana");
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const filterContainerRef = useRef<HTMLDivElement | null>(null);
 
   const categoryLabelMap = new Map(
@@ -440,6 +441,42 @@ export default function TransactionsPage() {
                       <p className="mt-0.5 text-[11px] text-[var(--ink3)]">
                         {formatTime(transaction.date)}
                       </p>
+                      <div className="mt-1 flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          className="text-[11px] font-medium text-[var(--blue)]"
+                          onClick={() => {
+                            const parsedIncome = parseIncomeCategoryId(transaction.categoryId);
+                            setEditingTransactionId(transaction.id);
+                            setEntryType(transaction.type);
+                            setAmountInput(String(transaction.amount));
+                            setCurrency(transaction.currency);
+                            setNote(transaction.note);
+                            setDate(transaction.date);
+                            if (transaction.type === "income") {
+                              setIncomeSource(
+                                transaction.owner === "milena" || parsedIncome.owner === "milena"
+                                  ? "Milena"
+                                  : "Roksana",
+                              );
+                            } else {
+                              setCategoryId(transaction.categoryId);
+                            }
+                            setIsSheetOpen(true);
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="text-[11px] font-medium text-[var(--red)]"
+                          onClick={() => {
+                            deleteTransaction(transaction.id);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -452,6 +489,13 @@ export default function TransactionsPage() {
       <button
         type="button"
         onClick={() => {
+          setEditingTransactionId(null);
+          setEntryType("expense");
+          setAmountInput("");
+          setCurrency("RUB");
+          setNote("");
+          setDate(new Date().toISOString().slice(0, 10));
+          setIncomeSource("Roksana");
           setIsSheetOpen(true);
         }}
         className="fixed right-[18px] bottom-[92px] z-[110] inline-flex items-center gap-[7px] rounded-[50px] border-0 bg-[var(--blue)] px-5 py-[13px] text-[13px] font-semibold tracking-[-0.2px] text-white shadow-[0_4px_20px_rgba(0,113,227,0.30)]"
@@ -470,7 +514,9 @@ export default function TransactionsPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mx-auto mb-5 h-1 w-9 rounded-[2px] bg-[var(--line2)]" />
-            <h2 className="mb-5 text-[17px] font-semibold tracking-[-0.4px] text-[var(--ink)]">New transaction</h2>
+            <h2 className="mb-5 text-[17px] font-semibold tracking-[-0.4px] text-[var(--ink)]">
+              {editingTransactionId ? "Edit transaction" : "New transaction"}
+            </h2>
 
             <div className="mb-[14px]">
               <div className="flex items-center gap-2">
@@ -651,20 +697,24 @@ export default function TransactionsPage() {
                   note,
                 } as const;
 
-                addTransaction({
-                  ...payload,
-                });
-                console.log("Saved transaction", payload);
+                if (editingTransactionId) {
+                  updateTransaction(editingTransactionId, payload);
+                } else {
+                  addTransaction({
+                    ...payload,
+                  });
+                }
                 setAmountInput("");
                 setNote("");
                 setIncomeSource("Roksana");
                 setEntryType("expense");
+                setEditingTransactionId(null);
                 setDate(new Date().toISOString().slice(0, 10));
                 setIsSheetOpen(false);
               }}
               className="mt-2 w-full rounded-xl bg-[var(--blue)] px-4 py-[14px] text-[15px] font-semibold text-white"
             >
-              Save transaction
+              {editingTransactionId ? "Save changes" : "Save transaction"}
             </button>
           </div>
         </div>

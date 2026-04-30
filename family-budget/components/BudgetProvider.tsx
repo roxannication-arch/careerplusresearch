@@ -54,6 +54,7 @@ interface BudgetContextValue {
   deletePocket: (id: string) => void;
   addFundsToPocket: (id: string, amount: number, currency: Currency) => void;
   addTransaction: (input: Omit<Transaction, "id">) => void;
+  updateTransaction: (id: string, input: Omit<Transaction, "id">) => void;
   deleteTransaction: (id: string) => void;
   previousMonth: string | null;
   hasPlanData: boolean;
@@ -419,6 +420,33 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
     [updateCurrentMonth],
   );
 
+  const updateTransaction = useCallback(
+    (id: string, input: Omit<Transaction, "id">) => {
+      if (!Number.isFinite(input.amount) || input.amount <= 0) {
+        return;
+      }
+      if (!input.categoryId.trim()) {
+        return;
+      }
+      if (input.type === "income" && input.owner !== "me" && input.owner !== "milena") {
+        return;
+      }
+
+      updateCurrentMonth((month) => ({
+        ...month,
+        transactions: month.transactions.map((transaction) =>
+          transaction.id === id
+            ? {
+                ...input,
+                id,
+              }
+            : transaction,
+        ),
+      }));
+    },
+    [updateCurrentMonth],
+  );
+
   const copyPlanFromMonth = useCallback(
     (fromMonth: string, options?: { force?: boolean }) => {
       if (!fromMonth) {
@@ -467,6 +495,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       deletePocket,
       addFundsToPocket,
       addTransaction,
+      updateTransaction,
       deleteTransaction,
       previousMonth,
       hasPlanData,
@@ -493,6 +522,7 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
       deletePocket,
       addFundsToPocket,
       addTransaction,
+      updateTransaction,
       deleteTransaction,
       previousMonth,
       hasPlanData,
