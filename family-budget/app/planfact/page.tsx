@@ -290,21 +290,21 @@ export default function PlanFactPage() {
             {rub(plannedIncomeTotal - actualIncomeTotal)} still to earn
           </p>
         ) : (
-          <p className="mt-3 text-[12px] text-[#1A9A44]">Goal reached ✓</p>
+          <p className="mt-3 text-[12px] text-[var(--blue)]">Goal reached ✓</p>
         )}
       </section>
 
       {incomeOwnerCards.map((ownerCard) => {
         const remaining = Math.max(ownerCard.planned - ownerCard.actual, 0);
         const progress = ownerCard.planned > 0 ? Math.min((ownerCard.actual / ownerCard.planned) * 100, 100) : 0;
-        const progressColor = progress >= 80 ? "#1A9A44" : progress >= 50 ? "#B8730A" : "#C7372F";
-        const earnedClass = ownerCard.actual >= ownerCard.planned ? "text-[#1A9A44]" : "text-[#C7372F]";
+        const progressColor = progress >= 80 ? "var(--blue)" : progress >= 50 ? "var(--amber)" : "var(--ink2)";
+        const earnedClass = ownerCard.actual >= ownerCard.planned ? "text-[var(--blue)]" : "text-[var(--ink)]";
         const badgeClass =
           ownerCard.actual > ownerCard.planned
-            ? "bg-[#F0FAF4] text-[#1A9A44]"
+            ? "bg-[var(--blue-bg)] text-[var(--blue)]"
             : ownerCard.actual < ownerCard.planned
-              ? "bg-[#FFF0EF] text-[#C7372F]"
-              : "bg-[#F5F5F7] text-[#8E8E93]";
+              ? "bg-[#F4F5F8] text-[var(--ink2)]"
+              : "bg-[#F5F5F7] text-[var(--ink3)]";
         const badgeText =
           ownerCard.actual > ownerCard.planned
             ? `+₽${formatRounded(ownerCard.actual - ownerCard.planned)}`
@@ -324,14 +324,14 @@ export default function PlanFactPage() {
             <div className="mb-3 mt-3 grid grid-cols-2 gap-2">
               <div className="rounded-[10px] bg-[#F5F5F7] px-[13px] py-[11px]">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#AEAEB2]">PLANNED</p>
-                <p className="text-[16px] font-bold tracking-[-0.4px] text-[#1D1D1F]">
+                <p className="text-[16px] font-semibold tracking-[-0.25px] text-[var(--ink)]">
                   <AnimatedNumber value={ownerCard.planned} />
                 </p>
                 <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{usd(ownerCard.planned / rate)}</p>
               </div>
               <div className="rounded-[10px] bg-[#F5F5F7] px-[13px] py-[11px]">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#AEAEB2]">EARNED</p>
-                <p className={cn("text-[16px] font-bold tracking-[-0.4px]", earnedClass)}>
+                <p className={cn("text-[16px] font-semibold tracking-[-0.25px]", earnedClass)}>
                   <AnimatedNumber value={ownerCard.actual} />
                 </p>
                 <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{usd(ownerCard.actual / rate)}</p>
@@ -339,7 +339,7 @@ export default function PlanFactPage() {
             </div>
 
             {ownerCard.actual >= ownerCard.planned ? (
-              <p className="text-[11px] text-[#1A9A44]">Done ✓</p>
+              <p className="text-[11px] text-[var(--blue)]">Done ✓</p>
             ) : (
               <p className="text-[11px] text-[#AEAEB2]">
                 Still to earn: {rub(remaining)} ({usd(remaining / rate)})
@@ -359,7 +359,7 @@ export default function PlanFactPage() {
             <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Spent so far</p>
             <BoldDigits
               value={fmt(actualTotals.rub, "RUB")}
-              className="text-[32px] font-light leading-none tracking-[-1px] text-[var(--ink)]"
+              className="text-[32px] font-semibold leading-none tracking-[-0.6px] text-[var(--ink)]"
             />
             <p className="mt-1 text-[12px] text-[var(--ink3)]">{fmt(actualTotals.usd, "USD")}</p>
             <p className="mt-2 text-[12px] text-[var(--ink3)]">

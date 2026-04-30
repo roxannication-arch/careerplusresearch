@@ -154,7 +154,7 @@ function AnimatedValueWithSymbol({
   return (
     <span className={className}>
       <AnimatedNumber value={value} formatter={(nextValue) => formatNumber(nextValue)} />
-      <span className="ml-1 text-[20px] font-light text-[var(--ink3)]">{symbol}</span>
+      <span className="ml-1 text-[20px] font-medium text-[var(--ink3)]">{symbol}</span>
     </span>
   );
 }
@@ -279,8 +279,8 @@ export default function DashboardPage() {
             value={available.rub}
             symbol="₽"
             className={cn(
-              "text-[40px] font-light leading-none tracking-[-1.5px]",
-              available.rub < 0 ? "text-[var(--red)]" : "text-[var(--ink)]",
+              "text-[40px] font-semibold leading-none tracking-[-1.3px]",
+              available.rub < 0 ? "text-[var(--ink)]" : "text-[var(--ink)]",
             )}
           />
         </div>
@@ -300,7 +300,7 @@ export default function DashboardPage() {
             <div style={{ fontSize: "11px", fontWeight: 500, color: "#AEAEB2", marginBottom: "4px" }}>
               Income
             </div>
-            <div style={{ fontSize: "17px", fontWeight: 600, letterSpacing: "-0.4px", color: "#1A9A44" }}>
+            <div style={{ fontSize: "17px", fontWeight: 700, letterSpacing: "-0.3px", color: "var(--ink)" }}>
               <AnimatedNumber value={totalIncome} formatter={(nextValue) => Math.round(nextValue).toLocaleString("en-US")} />
               <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "2px" }}>₽</span>
             </div>
@@ -319,7 +319,7 @@ export default function DashboardPage() {
             <div style={{ fontSize: "11px", fontWeight: 500, color: "#AEAEB2", marginBottom: "4px" }}>
               Spent
             </div>
-            <div style={{ fontSize: "17px", fontWeight: 600, letterSpacing: "-0.4px", color: "#C7372F" }}>
+            <div style={{ fontSize: "17px", fontWeight: 700, letterSpacing: "-0.3px", color: "var(--ink)" }}>
               <AnimatedNumber value={actualSpent} formatter={(nextValue) => Math.round(nextValue).toLocaleString("en-US")} />
               <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "2px" }}>₽</span>
             </div>
@@ -338,7 +338,7 @@ export default function DashboardPage() {
             <div style={{ fontSize: "11px", fontWeight: 500, color: "#AEAEB2", marginBottom: "4px" }}>
               Pockets
             </div>
-            <div style={{ fontSize: "17px", fontWeight: 600, letterSpacing: "-0.4px", color: "#0071E3" }}>
+            <div style={{ fontSize: "17px", fontWeight: 700, letterSpacing: "-0.3px", color: "var(--ink)" }}>
               <AnimatedNumber value={pocketTotal} formatter={(nextValue) => Math.round(nextValue).toLocaleString("en-US")} />
               <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "2px" }}>₽</span>
             </div>
