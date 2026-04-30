@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { toRub, toUsd } from "@/lib/currency";
 import {
   getActualIncome,
@@ -141,18 +142,19 @@ function DualAmount({
   );
 }
 
-function BigValue({ value, className }: { value: string; className: string }) {
+function AnimatedValueWithSymbol({
+  value,
+  className,
+  symbol,
+}: {
+  value: number;
+  className: string;
+  symbol: string;
+}) {
   return (
     <span className={className}>
-      {Array.from(value).map((char, index) =>
-        /\d/.test(char) ? (
-          <b key={`${char}-${index}`} className="font-semibold">
-            {char}
-          </b>
-        ) : (
-          <span key={`${char}-${index}`}>{char}</span>
-        ),
-      )}
+      <AnimatedNumber value={value} formatter={(nextValue) => formatNumber(nextValue)} />
+      <span className="ml-1 text-[20px] font-light text-[var(--ink3)]">{symbol}</span>
     </span>
   );
 }
@@ -273,17 +275,17 @@ export default function DashboardPage() {
       <section className="mb-3 rounded-[20px] bg-[var(--white)] px-5 py-6">
         <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Available</p>
         <div className="flex items-end gap-1.5">
-          <BigValue
-            value={formatNumber(available.rub)}
+          <AnimatedValueWithSymbol
+            value={available.rub}
+            symbol="₽"
             className={cn(
               "text-[40px] font-light leading-none tracking-[-1.5px]",
               available.rub < 0 ? "text-[var(--red)]" : "text-[var(--ink)]",
             )}
           />
-          <span className="mb-1 ml-1 text-[20px] font-light text-[var(--ink3)]">₽</span>
         </div>
         <p className="mt-[5px] text-[13px] text-[var(--ink3)]">
-          {formatNumber(available.usd)} $
+          <AnimatedNumber value={available.usd} formatter={(nextValue) => `${formatNumber(nextValue)} $`} />
         </p>
         <div
           style={{
@@ -299,11 +301,14 @@ export default function DashboardPage() {
               Income
             </div>
             <div style={{ fontSize: "17px", fontWeight: 600, letterSpacing: "-0.4px", color: "#1A9A44" }}>
-              {totalIncome.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              <AnimatedNumber value={totalIncome} formatter={(nextValue) => Math.round(nextValue).toLocaleString("en-US")} />
               <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "2px" }}>₽</span>
             </div>
             <div style={{ fontSize: "11px", color: "#AEAEB2", marginTop: "2px" }}>
-              {(totalIncome / rate).toLocaleString("en-US", { maximumFractionDigits: 0 })} $
+              <AnimatedNumber
+                value={totalIncome / rate}
+                formatter={(nextValue) => `${Math.round(nextValue).toLocaleString("en-US")} $`}
+              />
             </div>
             <div style={{ fontSize: "10px", color: "#AEAEB2", marginTop: "3px", whiteSpace: "nowrap" }}>
               of {plannedIncome.toLocaleString("en-US", { maximumFractionDigits: 0 })} ₽ planned
@@ -315,11 +320,14 @@ export default function DashboardPage() {
               Spent
             </div>
             <div style={{ fontSize: "17px", fontWeight: 600, letterSpacing: "-0.4px", color: "#C7372F" }}>
-              {actualSpent.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              <AnimatedNumber value={actualSpent} formatter={(nextValue) => Math.round(nextValue).toLocaleString("en-US")} />
               <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "2px" }}>₽</span>
             </div>
             <div style={{ fontSize: "11px", color: "#AEAEB2", marginTop: "2px" }}>
-              {(actualSpent / rate).toLocaleString("en-US", { maximumFractionDigits: 0 })} $
+              <AnimatedNumber
+                value={actualSpent / rate}
+                formatter={(nextValue) => `${Math.round(nextValue).toLocaleString("en-US")} $`}
+              />
             </div>
             <div style={{ fontSize: "10px", color: "#AEAEB2", marginTop: "3px", whiteSpace: "nowrap" }}>
               of {totalPlanned.toLocaleString("en-US", { maximumFractionDigits: 0 })} ₽ planned
@@ -331,11 +339,14 @@ export default function DashboardPage() {
               Pockets
             </div>
             <div style={{ fontSize: "17px", fontWeight: 600, letterSpacing: "-0.4px", color: "#0071E3" }}>
-              {pocketTotal.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              <AnimatedNumber value={pocketTotal} formatter={(nextValue) => Math.round(nextValue).toLocaleString("en-US")} />
               <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "2px" }}>₽</span>
             </div>
             <div style={{ fontSize: "11px", color: "#AEAEB2", marginTop: "2px" }}>
-              {(pocketTotal / rate).toLocaleString("en-US", { maximumFractionDigits: 0 })} $
+              <AnimatedNumber
+                value={pocketTotal / rate}
+                formatter={(nextValue) => `${Math.round(nextValue).toLocaleString("en-US")} $`}
+              />
             </div>
           </div>
         </div>

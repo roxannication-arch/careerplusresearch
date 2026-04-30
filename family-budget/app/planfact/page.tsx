@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import { useBudget } from "@/components/BudgetProvider";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { fmt, toRub, toUsd } from "@/lib/currency";
 import { getActualIncome, getPlannedIncome } from "@/lib/storage";
 import { calculatePlannedExpenseTotals, calculateTransactionTotals } from "@/lib/summary";
@@ -271,12 +272,16 @@ export default function PlanFactPage() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-[11px] text-[#AEAEB2]">Earned</p>
-            <p className="mt-1 text-[17px] font-semibold text-[var(--ink)]">{rub(actualIncomeTotal)}</p>
+            <p className="mt-1 text-[17px] font-semibold text-[var(--ink)]">
+              <AnimatedNumber value={actualIncomeTotal} />
+            </p>
             <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{usd(actualIncomeTotal / rate)}</p>
           </div>
           <div className="text-right">
             <p className="text-[11px] text-[#AEAEB2]">Planned</p>
-            <p className="mt-1 text-[17px] font-semibold text-[var(--ink)]">{rub(plannedIncomeTotal)}</p>
+            <p className="mt-1 text-[17px] font-semibold text-[var(--ink)]">
+              <AnimatedNumber value={plannedIncomeTotal} />
+            </p>
             <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{usd(plannedIncomeTotal / rate)}</p>
           </div>
         </div>
@@ -319,12 +324,16 @@ export default function PlanFactPage() {
             <div className="mb-3 mt-3 grid grid-cols-2 gap-2">
               <div className="rounded-[10px] bg-[#F5F5F7] px-[13px] py-[11px]">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#AEAEB2]">PLANNED</p>
-                <p className="text-[16px] font-bold tracking-[-0.4px] text-[#1D1D1F]">{rub(ownerCard.planned)}</p>
+                <p className="text-[16px] font-bold tracking-[-0.4px] text-[#1D1D1F]">
+                  <AnimatedNumber value={ownerCard.planned} />
+                </p>
                 <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{usd(ownerCard.planned / rate)}</p>
               </div>
               <div className="rounded-[10px] bg-[#F5F5F7] px-[13px] py-[11px]">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#AEAEB2]">EARNED</p>
-                <p className={cn("text-[16px] font-bold tracking-[-0.4px]", earnedClass)}>{rub(ownerCard.actual)}</p>
+                <p className={cn("text-[16px] font-bold tracking-[-0.4px]", earnedClass)}>
+                  <AnimatedNumber value={ownerCard.actual} />
+                </p>
                 <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{usd(ownerCard.actual / rate)}</p>
               </div>
             </div>
