@@ -31,15 +31,15 @@ export function TopBar() {
   };
 
   return (
-    <header className="sticky top-0 z-[100] border-b border-[0.5px] border-[var(--line2)] bg-[rgba(255,255,255,0.92)] [backdrop-filter:saturate(180%)_blur(20px)]">
-      <div className="mx-auto w-full max-w-[480px] px-[20px] pt-[18px]">
+    <header className="sticky top-0 z-[100] border-b border-[0.5px] border-[var(--line2)] bg-[var(--glass)] [backdrop-filter:saturate(180%)_blur(20px)]">
+      <div className="mx-auto w-full max-w-[480px] px-[20px] pt-[16px]">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-[22px] font-bold tracking-[-0.6px] text-[var(--ink)]">Budget</h1>
           <div className="flex items-center gap-2">
             <select
               value={selectedMonth}
               onChange={(event) => setSelectedMonth(event.target.value)}
-              className="max-w-[128px] appearance-none bg-transparent text-right text-[13px] text-[var(--ink2)] outline-none"
+              className="max-w-[132px] appearance-none bg-transparent text-right text-[13px] font-medium text-[var(--ink2)] outline-none"
             >
               {monthOptions.map((month) => (
                 <option key={month} value={month}>
@@ -58,7 +58,7 @@ export function TopBar() {
                     commitRate();
                   }
                 }}
-                className="w-[96px] rounded-[20px] border-[1.5px] border-[var(--blue)] bg-white px-[11px] py-[6px] text-[12px] font-semibold text-[var(--blue)] outline-none"
+                className="w-[102px] rounded-[20px] border-[1.5px] border-[var(--blue)] bg-[var(--surface)] px-[11px] py-[6px] text-[12px] font-semibold text-[var(--blue)] outline-none shadow-[var(--soft-shadow)]"
               />
             ) : (
               <button
@@ -67,7 +67,7 @@ export function TopBar() {
                   setRateDraft(String(Math.round(monthData.exchangeRate)));
                   setIsRateEditing(true);
                 }}
-                className="rounded-[20px] bg-[var(--blue-bg)] px-[11px] py-[6px] text-[12px] font-semibold text-[var(--blue)]"
+                className="rounded-[20px] bg-[var(--surface-2)] px-[11px] py-[6px] text-[12px] font-semibold text-[var(--blue)] shadow-[var(--soft-shadow)]"
               >
                 $1 = ₽{Math.round(monthData.exchangeRate)}
               </button>
@@ -75,16 +75,16 @@ export function TopBar() {
           </div>
         </div>
 
-        <nav className="mt-[14px] flex gap-5 overflow-x-auto pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <nav className="mt-[14px] flex gap-2 overflow-x-auto pb-[10px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {navTabs.map((tab) => (
             <Link
               key={tab.href}
               href={tab.href}
               className={cn(
-                "border-b-[1.5px] pb-[7px] text-[13px] font-medium whitespace-nowrap transition-colors",
+                "rounded-[10px] px-3 py-[7px] text-[12px] font-semibold whitespace-nowrap transition-all",
                 pathname === tab.href
-                  ? "border-[var(--blue)] text-[var(--blue)]"
-                  : "border-transparent text-[var(--ink2)]",
+                  ? "bg-[var(--surface)] text-[var(--ink)] shadow-[var(--soft-shadow)]"
+                  : "text-[var(--ink2)]",
               )}
             >
               {tab.label}

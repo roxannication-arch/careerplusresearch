@@ -49,23 +49,23 @@
 }
 
 :root {
-  --bg: #F5F5F7;
-  --white: #FFFFFF;
-  --ink: #1D1D1F;
-  --ink2: #6E6E73;
-  --ink3: #AEAEB2;
-  --line: rgba(0, 0, 0, 0.06);
-  --line2: rgba(0, 0, 0, 0.1);
-  --blue: #0071E3;
-  --blue-bg: #F0F6FF;
-  --green: #1A9A44;
-  --green-bg: #F0FAF4;
-  --red: #C7372F;
-  --red-bg: #FFF0EF;
-  --amber: #B8730A;
-  --amber-bg: #FFF8EC;
-  --purple: #6B3FA0;
-  --purple-bg: #F5F0FF;
+  --bg: #eef3fb;
+  --white: #ffffff;
+  --ink: #111320;
+  --ink2: #4f586d;
+  --ink3: #99a2b7;
+  --line: rgba(12, 20, 38, 0.08);
+  --line2: rgba(12, 20, 38, 0.12);
+  --blue: #246bff;
+  --blue-bg: #edf3ff;
+  --green: #1a9a44;
+  --green-bg: #eef9f2;
+  --red: #c7372f;
+  --red-bg: #fff0ef;
+  --amber: #b8730a;
+  --amber-bg: #fff7ea;
+  --purple: #6b3fa0;
+  --purple-bg: #f4efff;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -144,8 +144,24 @@
     @apply bg-[var(--bg)] text-[var(--ink)];
     font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     padding-bottom: 80px;
+    background-image:
+      radial-gradient(1200px 600px at 10% -10%, rgba(36, 107, 255, 0.12), transparent 55%),
+      radial-gradient(900px 540px at 100% 10%, rgba(41, 212, 171, 0.11), transparent 58%),
+      linear-gradient(180deg, #f5f8ff 0%, #eef3fb 40%, #edf2fa 100%);
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  [class*="rounded-2xl"][class*="bg-[var(--white)]"],
+  [class*="rounded-[20px]"][class*="bg-[var(--white)]"],
+  [class*="rounded-[16px]"][class*="bg-[var(--white)]"] {
+    border: 1px solid rgba(12, 20, 38, 0.06);
+    box-shadow:
+      0 1px 1px rgba(12, 20, 38, 0.03),
+      0 10px 24px rgba(22, 35, 66, 0.05);
   }
 }

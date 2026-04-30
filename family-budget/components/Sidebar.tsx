@@ -15,17 +15,17 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed right-1/2 bottom-0 z-[100] w-full max-w-[480px] translate-x-1/2 border-t border-[0.5px] border-[var(--line2)] bg-[rgba(255,255,255,0.92)] py-[10px] [backdrop-filter:saturate(180%)_blur(20px)]">
-      <div className="grid grid-cols-5">
+    <nav className="fixed right-1/2 bottom-3 z-[100] w-[calc(100%-20px)] max-w-[456px] translate-x-1/2 rounded-3xl border border-[var(--line2)] bg-[rgba(18,21,28,0.78)] p-2 shadow-[0_24px_56px_rgba(0,0,0,0.4)] [backdrop-filter:saturate(180%)_blur(24px)]">
+      <div className="grid grid-cols-5 gap-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
-          const color = isActive ? "var(--blue)" : "var(--ink3)";
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="inline-flex flex-col items-center justify-center gap-1 px-1 py-0.5 text-[10px] font-medium"
-              style={{ color }}
+              className={isActive
+                ? "inline-flex flex-col items-center justify-center gap-1 rounded-2xl bg-white/12 px-1 py-1 text-[10px] font-semibold text-white"
+                : "inline-flex flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1 text-[10px] font-medium text-white/70 hover:bg-white/6"}
             >
               <span className="inline-flex h-[22px] w-[22px] items-center justify-center">
                 {item.href === "/dashboard" && (
