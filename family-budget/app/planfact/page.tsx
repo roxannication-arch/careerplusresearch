@@ -184,7 +184,7 @@ export default function PlanFactPage() {
   const remainingRub = plannedTotals.rub - actualTotals.rub;
   const budgetUsed = plannedTotals.rub > 0 ? (actualTotals.rub / plannedTotals.rub) * 100 : 0;
   const budgetUsedTone =
-    budgetUsed < 80 ? "text-[var(--green)]" : budgetUsed <= 100 ? "text-[var(--amber)]" : "text-[var(--red)]";
+    budgetUsed < 80 ? "text-[var(--metric-savings)]" : budgetUsed <= 100 ? "text-[var(--amber)]" : "text-[var(--metric-expense)]";
 
   const actualByCategory = useMemo(() => {
     const grouped = new Map<string, { rub: number; usd: number }>();
@@ -233,8 +233,8 @@ export default function PlanFactPage() {
               : "var(--blue)";
         const actualPrimaryClassName =
           actualRub > plannedRub
-            ? "text-[16px] font-bold tracking-[-0.4px] text-[var(--red)]"
-            : "text-[16px] font-bold tracking-[-0.4px] text-[var(--ink)]";
+            ? "text-[16px] font-bold tracking-[-0.4px] text-[var(--metric-expense)]"
+            : "text-[16px] font-bold tracking-[-0.4px] text-[var(--metric-primary)]";
 
         return {
           id: expense.id,
@@ -272,14 +272,14 @@ export default function PlanFactPage() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-[11px] text-[#AEAEB2]">Earned</p>
-            <p className="mt-1 text-[17px] font-semibold text-[var(--ink)]">
+            <p className="mt-1 text-[17px] font-semibold text-[var(--metric-income)]">
               <AnimatedNumber value={actualIncomeTotal} />
             </p>
             <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{usd(actualIncomeTotal / rate)}</p>
           </div>
           <div className="text-right">
             <p className="text-[11px] text-[#AEAEB2]">Planned</p>
-            <p className="mt-1 text-[17px] font-semibold text-[var(--ink)]">
+            <p className="mt-1 text-[17px] font-semibold text-[var(--metric-primary)]">
               <AnimatedNumber value={plannedIncomeTotal} />
             </p>
             <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{usd(plannedIncomeTotal / rate)}</p>
@@ -290,7 +290,7 @@ export default function PlanFactPage() {
             {rub(plannedIncomeTotal - actualIncomeTotal)} still to earn
           </p>
         ) : (
-          <p className="mt-3 text-[12px] text-[var(--blue)]">Goal reached ✓</p>
+          <p className="mt-3 text-[12px] text-[var(--metric-income)]">Goal reached ✓</p>
         )}
       </section>
 
@@ -298,10 +298,11 @@ export default function PlanFactPage() {
         const remaining = Math.max(ownerCard.planned - ownerCard.actual, 0);
         const progress = ownerCard.planned > 0 ? Math.min((ownerCard.actual / ownerCard.planned) * 100, 100) : 0;
         const progressColor = progress >= 80 ? "var(--blue)" : progress >= 50 ? "var(--amber)" : "var(--ink2)";
-        const earnedClass = ownerCard.actual >= ownerCard.planned ? "text-[var(--blue)]" : "text-[var(--ink)]";
+        const earnedClass =
+          ownerCard.actual >= ownerCard.planned ? "text-[var(--metric-income)]" : "text-[var(--metric-primary)]";
         const badgeClass =
           ownerCard.actual > ownerCard.planned
-            ? "bg-[var(--blue-bg)] text-[var(--blue)]"
+            ? "bg-[var(--blue-bg)] text-[var(--metric-income)]"
             : ownerCard.actual < ownerCard.planned
               ? "bg-[#F4F5F8] text-[var(--ink2)]"
               : "bg-[#F5F5F7] text-[var(--ink3)]";
@@ -315,7 +316,7 @@ export default function PlanFactPage() {
         return (
           <article key={ownerCard.key} className="mb-[10px] rounded-[16px] bg-[var(--white)] p-4">
             <div className="flex items-center justify-between">
-              <p className="text-[15px] font-semibold tracking-[-0.3px] text-[var(--ink)]">{ownerCard.label}</p>
+              <p className="text-[15px] font-semibold tracking-[-0.3px] text-[var(--metric-primary)]">{ownerCard.label}</p>
               <span className={cn("rounded-[20px] px-[9px] py-1 text-[11px] font-semibold", badgeClass)}>
                 {badgeText}
               </span>
@@ -324,7 +325,7 @@ export default function PlanFactPage() {
             <div className="mb-3 mt-3 grid grid-cols-2 gap-2">
               <div className="rounded-[10px] bg-[#F5F5F7] px-[13px] py-[11px]">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#AEAEB2]">PLANNED</p>
-                <p className="text-[16px] font-semibold tracking-[-0.25px] text-[var(--ink)]">
+                <p className="text-[16px] font-semibold tracking-[-0.25px] text-[var(--metric-primary)]">
                   <AnimatedNumber value={ownerCard.planned} />
                 </p>
                 <p className="mt-0.5 text-[11px] text-[#AEAEB2]">{usd(ownerCard.planned / rate)}</p>
@@ -339,7 +340,7 @@ export default function PlanFactPage() {
             </div>
 
             {ownerCard.actual >= ownerCard.planned ? (
-              <p className="text-[11px] text-[var(--blue)]">Done ✓</p>
+              <p className="text-[11px] text-[var(--metric-income)]">Done ✓</p>
             ) : (
               <p className="text-[11px] text-[#AEAEB2]">
                 Still to earn: {rub(remaining)} ({usd(remaining / rate)})
@@ -359,7 +360,7 @@ export default function PlanFactPage() {
             <p className="mb-1.5 text-[12px] font-medium text-[var(--ink3)]">Spent so far</p>
             <BoldDigits
               value={fmt(actualTotals.rub, "RUB")}
-              className="text-[32px] font-semibold leading-none tracking-[-0.6px] text-[var(--ink)]"
+              className="text-[32px] font-semibold leading-none tracking-[-0.6px] text-[var(--metric-primary)]"
             />
             <p className="mt-1 text-[12px] text-[var(--ink3)]">{fmt(actualTotals.usd, "USD")}</p>
             <p className="mt-2 text-[12px] text-[var(--ink3)]">
@@ -408,7 +409,7 @@ export default function PlanFactPage() {
                   <AmountPair
                     primary={fmt(card.plannedRub, "RUB")}
                     secondary={fmt(card.plannedUsd, "USD")}
-                    primaryClassName="text-[16px] font-bold tracking-[-0.4px] text-[var(--ink)]"
+                    primaryClassName="text-[16px] font-bold tracking-[-0.4px] text-[var(--metric-primary)]"
                   />
                 </div>
                 <div className="rounded-[10px] bg-[var(--bg)] px-[13px] py-[11px]">

@@ -280,7 +280,7 @@ export default function DashboardPage() {
             symbol="₽"
             className={cn(
               "text-[40px] font-semibold leading-none tracking-[-1.3px]",
-              available.rub < 0 ? "text-[var(--ink)]" : "text-[var(--ink)]",
+              available.rub < 0 ? "text-[var(--metric-muted)]" : "text-[var(--metric-primary)]",
             )}
           />
         </div>
@@ -300,7 +300,7 @@ export default function DashboardPage() {
             <div style={{ fontSize: "11px", fontWeight: 500, color: "#AEAEB2", marginBottom: "4px" }}>
               Income
             </div>
-            <div style={{ fontSize: "17px", fontWeight: 700, letterSpacing: "-0.3px", color: "var(--ink)" }}>
+            <div style={{ fontSize: "17px", fontWeight: 700, letterSpacing: "-0.3px", color: "var(--metric-income)" }}>
               <AnimatedNumber value={totalIncome} formatter={(nextValue) => Math.round(nextValue).toLocaleString("en-US")} />
               <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "2px" }}>₽</span>
             </div>
@@ -319,7 +319,7 @@ export default function DashboardPage() {
             <div style={{ fontSize: "11px", fontWeight: 500, color: "#AEAEB2", marginBottom: "4px" }}>
               Spent
             </div>
-            <div style={{ fontSize: "17px", fontWeight: 700, letterSpacing: "-0.3px", color: "var(--ink)" }}>
+            <div style={{ fontSize: "17px", fontWeight: 700, letterSpacing: "-0.3px", color: "var(--metric-expense)" }}>
               <AnimatedNumber value={actualSpent} formatter={(nextValue) => Math.round(nextValue).toLocaleString("en-US")} />
               <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "2px" }}>₽</span>
             </div>
@@ -338,7 +338,7 @@ export default function DashboardPage() {
             <div style={{ fontSize: "11px", fontWeight: 500, color: "#AEAEB2", marginBottom: "4px" }}>
               Pockets
             </div>
-            <div style={{ fontSize: "17px", fontWeight: 700, letterSpacing: "-0.3px", color: "var(--ink)" }}>
+            <div style={{ fontSize: "17px", fontWeight: 700, letterSpacing: "-0.3px", color: "var(--metric-savings)" }}>
               <AnimatedNumber value={pocketTotal} formatter={(nextValue) => Math.round(nextValue).toLocaleString("en-US")} />
               <span style={{ fontSize: "12px", fontWeight: 400, marginLeft: "2px" }}>₽</span>
             </div>
@@ -422,7 +422,7 @@ export default function DashboardPage() {
                     amount={transaction.amount}
                     currency={transaction.currency}
                     exchangeRate={monthData.exchangeRate}
-                    primaryClassName="text-[14px] font-semibold tracking-[-0.3px] text-[var(--red)]"
+                    primaryClassName="text-[14px] font-semibold tracking-[-0.3px] text-[var(--metric-expense)]"
                     secondaryClassName="mt-0.5 text-[11px] text-[var(--ink3)]"
                     negative
                   />

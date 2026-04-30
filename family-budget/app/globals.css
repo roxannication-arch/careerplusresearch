@@ -54,6 +54,11 @@
   --ink: #111320;
   --ink2: #4f586d;
   --ink3: #99a2b7;
+  --metric-primary: #27375f;
+  --metric-income: #2f57d9;
+  --metric-expense: #6759bf;
+  --metric-savings: #2f728f;
+  --metric-muted: #5c6b91;
   --line: rgba(12, 20, 38, 0.08);
   --line2: rgba(12, 20, 38, 0.12);
   --blue: #246bff;
