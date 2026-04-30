@@ -44,18 +44,6 @@ function formatDateGroupLabel(dateValue: string): string {
   });
 }
 
-function formatTime(dateValue: string): string {
-  const date = new Date(`${dateValue}T00:00:00`);
-  if (Number.isNaN(date.getTime())) {
-    return "00:00";
-  }
-
-  return date.toLocaleTimeString("ru-RU", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 function detectExpenseKind(name: string): IconKind {
   const lowered = name.toLowerCase();
   if (/(rent|аренд|кварт|жиль)/.test(lowered)) return "rent";
@@ -437,9 +425,6 @@ export default function TransactionsPage() {
                           isIncome ? Math.abs(converted) : -Math.abs(converted),
                           transaction.currency === "USD" ? "RUB" : "USD",
                         )}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-[var(--ink3)]">
-                        {formatTime(transaction.date)}
                       </p>
                       <div className="mt-1 flex items-center justify-end gap-2">
                         <button
