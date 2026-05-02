@@ -219,19 +219,13 @@ export default function TransactionsPage() {
     };
   }, [isFilterOpen]);
 
-  useEffect(() => {
-    if (entryType !== "income") {
-      return;
+  const resolvedIncomePlanSource = useMemo(() => {
+    const trimmed = incomePlanSource.trim();
+    if (trimmed && currentOwnerIncomeSources.includes(trimmed)) {
+      return trimmed;
     }
-
-    setIncomePlanSource((previous) => {
-      const trimmed = previous.trim();
-      if (trimmed && currentOwnerIncomeSources.includes(trimmed)) {
-        return trimmed;
-      }
-      return currentOwnerIncomeSources[0] ?? "";
-    });
-  }, [currentOwnerIncomeSources, entryType, incomeOwner]);
+    return currentOwnerIncomeSources[0] ?? "";
+  }, [currentOwnerIncomeSources, incomePlanSource]);
 
   const filteredTransactions = useMemo(
     () =>
@@ -756,7 +750,7 @@ export default function TransactionsPage() {
                     Income source
                   </p>
                   <select
-                    value={incomePlanSource}
+                    value={resolvedIncomePlanSource}
                     onChange={(event) => setIncomePlanSource(event.target.value)}
                     className="w-full rounded-[10px] border-0 bg-[var(--bg)] px-[14px] py-3 text-[14px] text-[var(--ink)] outline-none"
                   >
@@ -812,7 +806,7 @@ export default function TransactionsPage() {
                 if (entryType === "expense" && !activeCategoryId) {
                   return;
                 }
-                const selectedIncomeSource = incomePlanSource.trim();
+                const selectedIncomeSource = resolvedIncomePlanSource.trim();
                 if (entryType === "income" && !selectedIncomeSource) {
                   return;
                 }
