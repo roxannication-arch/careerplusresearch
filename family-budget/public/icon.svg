@@ -1,0 +1,8 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="1024" fill="#0A0A0A"/>
+  <rect x="186" y="372" width="652" height="70" rx="35" fill="white" opacity="0.9"/>
+  <rect x="186" y="512" width="420" height="46" rx="23" fill="white" opacity="0.4"/>
+  <rect x="186" y="628" width="512" height="46" rx="23" fill="white" opacity="0.25"/>
+  <circle cx="745" cy="698" r="163" fill="#0071E3"/>
+  <text x="745" y="740" font-family="-apple-system, Inter, sans-serif" font-size="140" font-weight="700" fill="white" text-anchor="middle">$</text>
+</svg>
