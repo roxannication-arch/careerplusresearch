@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useBudget } from "@/components/BudgetProvider";
 import { convertCurrency, toRub, toUsd } from "@/lib/currency";
 import { encodeIncomeCategoryId, parseIncomeCategoryId } from "@/lib/income";
-import { Currency } from "@/lib/types";
+import { Currency, IncomeOwner } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type IconKind = "rent" | "groceries" | "transport" | "entertainment" | "phone";
@@ -137,7 +137,8 @@ export default function TransactionsPage() {
   const [note, setNote] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [categoryId, setCategoryId] = useState(monthData.expenses[0]?.id ?? "");
-  const [incomeSource, setIncomeSource] = useState<"Roksana" | "Milena">("Roksana");
+  const [incomeOwner, setIncomeOwner] = useState<IncomeOwner>("me");
+  const [incomePlanSource, setIncomePlanSource] = useState("");
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const filterContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -150,6 +151,28 @@ export default function TransactionsPage() {
   const activeCategoryId = monthData.expenses.some((expense) => expense.id === categoryId)
     ? categoryId
     : (monthData.expenses[0]?.id ?? "");
+  const incomeSourcesByOwner = useMemo(
+    () => ({
+      me: Array.from(
+        new Set(
+          monthData.incomes
+            .filter((income) => income.owner === "me")
+            .map((income) => income.name.trim())
+            .filter(Boolean),
+        ),
+      ),
+      milena: Array.from(
+        new Set(
+          monthData.incomes
+            .filter((income) => income.owner === "milena")
+            .map((income) => income.name.trim())
+            .filter(Boolean),
+        ),
+      ),
+    }),
+    [monthData.incomes],
+  );
+  const currentOwnerIncomeSources = incomeSourcesByOwner[incomeOwner];
 
   const parsedAmount = Number.parseFloat(amountInput);
   const hasAmount = Number.isFinite(parsedAmount) && parsedAmount > 0;
@@ -195,6 +218,20 @@ export default function TransactionsPage() {
       document.removeEventListener("keydown", handleEscape);
     };
   }, [isFilterOpen]);
+
+  useEffect(() => {
+    if (entryType !== "income") {
+      return;
+    }
+
+    setIncomePlanSource((previous) => {
+      const trimmed = previous.trim();
+      if (trimmed && currentOwnerIncomeSources.includes(trimmed)) {
+        return trimmed;
+      }
+      return currentOwnerIncomeSources[0] ?? "";
+    });
+  }, [currentOwnerIncomeSources, entryType, incomeOwner]);
 
   const filteredTransactions = useMemo(
     () =>
@@ -519,11 +556,12 @@ export default function TransactionsPage() {
                             setNote(transaction.note);
                             setDate(transaction.date);
                             if (transaction.type === "income") {
-                              setIncomeSource(
+                              const owner: IncomeOwner =
                                 transaction.owner === "milena" || parsedIncome.owner === "milena"
-                                  ? "Milena"
-                                  : "Roksana",
-                              );
+                                  ? "milena"
+                                  : "me";
+                              setIncomeOwner(owner);
+                              setIncomePlanSource(transaction.source?.trim() || parsedIncome.source || "");
                             } else {
                               setCategoryId(transaction.categoryId);
                             }
@@ -560,7 +598,8 @@ export default function TransactionsPage() {
           setCurrency("RUB");
           setNote("");
           setDate(new Date().toISOString().slice(0, 10));
-          setIncomeSource("Roksana");
+          setIncomeOwner("me");
+          setIncomePlanSource("");
           setIsSheetOpen(true);
         }}
         className="fixed right-[18px] bottom-[92px] z-[110] inline-flex items-center gap-[7px] rounded-[50px] border-0 bg-[var(--blue)] px-5 py-[13px] text-[13px] font-semibold tracking-[-0.2px] text-white shadow-[0_4px_20px_rgba(0,113,227,0.30)]"
@@ -684,17 +723,20 @@ export default function TransactionsPage() {
               <>
                 <div className="mb-[14px]">
                   <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
-                    Source
+                    Owner
                   </p>
                   <div className="flex items-center gap-2">
-                    {(["Roksana", "Milena"] as const).map((source) => {
-                      const active = incomeSource === source;
+                    {([
+                      { key: "me" as const, label: "Roksana" },
+                      { key: "milena" as const, label: "Milena" },
+                    ] as const).map((ownerItem) => {
+                      const active = incomeOwner === ownerItem.key;
                       return (
                         <button
-                          key={source}
+                          key={ownerItem.key}
                           type="button"
                           onClick={() => {
-                            setIncomeSource(source);
+                            setIncomeOwner(ownerItem.key);
                           }}
                           className={cn(
                             "rounded-[10px] px-4 py-2 text-[13px] transition-colors",
@@ -703,11 +745,35 @@ export default function TransactionsPage() {
                               : "bg-[var(--bg)] text-[var(--ink3)]",
                           )}
                         >
-                          {source}
+                          {ownerItem.label}
                         </button>
                       );
                     })}
                   </div>
+                </div>
+                <div className="mb-[14px]">
+                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink3)]">
+                    Income source
+                  </p>
+                  <select
+                    value={incomePlanSource}
+                    onChange={(event) => setIncomePlanSource(event.target.value)}
+                    className="w-full rounded-[10px] border-0 bg-[var(--bg)] px-[14px] py-3 text-[14px] text-[var(--ink)] outline-none"
+                  >
+                    {currentOwnerIncomeSources.length === 0 ? (
+                      <option value="">No sources in Plan</option>
+                    ) : null}
+                    {currentOwnerIncomeSources.map((sourceName) => (
+                      <option key={sourceName} value={sourceName}>
+                        {sourceName}
+                      </option>
+                    ))}
+                  </select>
+                  {currentOwnerIncomeSources.length === 0 ? (
+                    <p className="mt-1.5 text-[11px] text-[var(--ink3)]">
+                      Add at least one income source on the Plan page first.
+                    </p>
+                  ) : null}
                 </div>
               </>
             )}
@@ -746,17 +812,20 @@ export default function TransactionsPage() {
                 if (entryType === "expense" && !activeCategoryId) {
                   return;
                 }
-                const incomeOwner = incomeSource === "Milena" ? "milena" : "me";
+                const selectedIncomeSource = incomePlanSource.trim();
+                if (entryType === "income" && !selectedIncomeSource) {
+                  return;
+                }
 
                 const payload = {
                   amount: parsed,
                   currency,
                   categoryId:
                     entryType === "income"
-                      ? encodeIncomeCategoryId(incomeOwner, incomeSource)
+                      ? encodeIncomeCategoryId(incomeOwner, selectedIncomeSource)
                       : activeCategoryId,
                   type: entryType,
-                  source: entryType === "income" ? incomeSource : undefined,
+                  source: entryType === "income" ? selectedIncomeSource : undefined,
                   owner: entryType === "income" ? incomeOwner : null,
                   date,
                   note,
@@ -771,7 +840,8 @@ export default function TransactionsPage() {
                 }
                 setAmountInput("");
                 setNote("");
-                setIncomeSource("Roksana");
+                setIncomeOwner("me");
+                setIncomePlanSource("");
                 setEntryType("expense");
                 setEditingTransactionId(null);
                 setDate(new Date().toISOString().slice(0, 10));
