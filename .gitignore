@@ -7,3 +7,10 @@ coverage
 *.log
 tsconfig.tsbuildinfo
 .vercel
+
+# Файлы с ключами и паролями: не загружать на GitHub
+.env
+.env.*
+!.env.example
+*.pem
+*.key
