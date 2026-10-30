@@ -1,0 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&display=swap');
+
+body {
+  margin: 0;
+  font-family: 'Bricolage Grotesque', 'Segoe UI', Roboto, Arial, sans-serif;
+  background: #0f0f0f;
+  color: #ffffff;
+}
+
+#root {
+  min-height: 100svh;
+}
